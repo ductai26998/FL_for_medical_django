@@ -13,13 +13,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path
-from django.conf.urls import url
-from .center.views import CenterSendsParams, CenterReceivesParams
+
+from .center.views import (CenterGetClientParams, CenterReceivesParams,
+                           CenterSendsParams)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    url("center/params/sends", CenterSendsParams.as_view(), name="center_sends_params"),
-    url("center/params/receives", CenterReceivesParams.as_view(), name="center_receives_params"),
+    url("center/params/sends", CenterSendsParams.as_view(),
+        name="center_sends_params"),
+    url("center/params/receives", CenterReceivesParams.as_view(),
+        name="center_receives_params"),
+    url("center/params", CenterGetClientParams.as_view(), name="center_get_params"),
 ]

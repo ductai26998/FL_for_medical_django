@@ -90,3 +90,28 @@ class CenterReceivesParams(views.APIView):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+class CenterGetClientParams(views.APIView):
+    @classmethod
+    def get(self, request, **kwargs):
+        data = request.data
+        global_round = data.get("global_round")
+        if not global_round:
+            return Response(
+                {
+                    "code": ErrorCode.REQUIRED,
+                    "detail": "global_round is required",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        params_list = CenterEvent.objects.filter(
+            event_type=EventType.CENTER_RECEIVED_PARAMS,
+            global_round=global_round
+        ).values_list("params", flat=True)
+        return Response(
+            {
+                "data": params_list
+            },
+            status=status.HTTP_200_OK,
+        )
