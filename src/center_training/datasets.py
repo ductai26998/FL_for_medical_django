@@ -25,6 +25,7 @@ class CustomDataset(Dataset):
         origin_image = Image.open(img_path)
         size = (28, 28)
         image = T.Resize(size=size)(origin_image)
+        image = T.Grayscale()(image)
         image = transform.to_tensor(image)
         label = self.img_labels.iloc[idx, 1]
         if self.transform:

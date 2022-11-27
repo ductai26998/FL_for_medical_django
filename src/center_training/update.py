@@ -19,11 +19,11 @@ class DatasetSplit(Dataset):
 
 
 class LocalUpdate(object):
-    def __init__(self, dataset, idxs, logger):
+    def __init__(self, dataset, logger):
         use_gpu = False
         self.logger = logger
         self.trainloader, self.validloader, self.testloader = self.train_val_test(
-            dataset, list(idxs)
+            dataset, list(range(dataset.__len__()))
         )
         self.device = "cuda" if use_gpu else "cpu"
         # Default criterion set to NLL loss function

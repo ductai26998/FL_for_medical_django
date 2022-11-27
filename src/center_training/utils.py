@@ -47,19 +47,7 @@ def get_dataset():
         img_dir=test_img_dir,
     )
 
-    # sample training data amongst users
-    if iid:
-        # Sample IID user data from Mnist
-        user_groups = mnist_iid(train_dataset, num_users)
-    else:
-        # Sample Non-IID user data from Mnist
-        if unequal:
-            # Chose uneuqal splits for every user
-            user_groups = mnist_noniid_unequal(train_dataset, num_users)
-        else:
-            # Chose euqal splits for every user
-            user_groups = mnist_noniid(train_dataset, num_users)
-    return train_dataset, test_dataset, user_groups
+    return train_dataset, test_dataset
 
 
 def average_weights(w):
@@ -128,7 +116,7 @@ def train_center():
     print(device)
 
     # load dataset and user groups
-    train_dataset, test_dataset, user_groups = get_dataset()
+    train_dataset, test_dataset = get_dataset()
 
     # BUILD MODEL
     if model == "cnn":
@@ -195,7 +183,8 @@ def train_center():
         response = response.json()
         if "data" in response:
             model_paths = response["data"]
-            local_params_list = [read_params_from_s3(path) for path in model_paths]
+            local_params_list = [read_params_from_s3(
+                path) for path in model_paths]
         print(local_params_list)
         global_weights = average_weights(local_params_list)
 
@@ -210,7 +199,7 @@ def train_center():
         global_model.eval()
         for c in range(num_users):
             local_model = LocalUpdate(
-                dataset=train_dataset, idxs=user_groups[idx], logger=logger
+                dataset=train_dataset, logger=logger
             )
             acc, loss = local_model.inference(model=global_model)
             list_acc.append(acc)
