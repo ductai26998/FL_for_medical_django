@@ -25,14 +25,17 @@ def upload_file_to_s3(
     return url
 
 
-def upload_params_to_s3(file, folder: str):
-    object_name = "%s/%s/%s" % (settings.FOLDER, folder, file.name)
+def upload_params_to_s3(file, folder: str, file_name=None):
+    if not file_name:
+        file_name = file.name
+    object_name = "%s/%s/%s" % (settings.FOLDER, folder, file_name)
     upload_file_to_s3(file=file, object_name=object_name)
     return object_name
 
 
 def read_params_from_s3(object_name, bucket_name=settings.AWS_STORAGE_BUCKET_NAME):
+    print("xxxxx", object_name)
     s3 = _s3_initialize()
-    params = pickle.loads(s3.Bucket(bucket_name).Object(
-        object_name).get()['Body'].read())
+    file = s3.Bucket(bucket_name).Object(object_name).get()['Body'].read()
+    params = pickle.loads(file)
     return params

@@ -18,13 +18,8 @@ from .datasets import CustomDataset
 from .models import CNN, CNNOpt
 from .sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from .update import LocalUpdate, test_inference
-
-
-def train_global_model():
-    local_weights = []
-    res = requests.get(
-        API_URL + "/center/event", json={"client_id": 1, "params": params}
-    )
+import io
+from ..utils.aws_s3 import upload_params_to_s3, read_params_from_s3
 
 
 # from imutils import paths
@@ -161,7 +156,7 @@ def train_center():
     val_loss_pre, counter = 0, 0
 
     for epoch in tqdm(range(epochs)):
-        local_weights, local_losses = [], []
+        local_params_list, local_losses = [], []
         print(f"\n | Global Training Round : {epoch+1} |\n")
 
         global_model.train()
@@ -169,32 +164,46 @@ def train_center():
         # idxs_users = np.random.choice(range(num_users), m, replace=False)
 
         params = global_model.state_dict()
-        params = dict(params)
-        for k, v in params.items():
-            # print(k)
-            # print(v.tolist())
-            params[k] = v.tolist()
-        # params = global_model.parameters()
-        # print("1111", dict(params))
+        # params = dict(params)
+        # for k, v in params.items():
+        #     # print(k)
+        #     # print(v.tolist())
+        #     params[k] = v.tolist()
+        # # params = global_model.parameters()
+        # # print("1111", dict(params))
+        buffer = io.BytesIO()
         # print("xxxx", json.dumps(params))
+        # torch.save(params, buffer)
+        # print("11111", pickle.loads(buffer.getvalue()))
+        pickle.dump(params, buffer)
+        model_path = upload_params_to_s3(
+            buffer.getvalue(), "center_params", "global_model_round_%s.pkl" % (epoch+1))
         res = requests.post(
-            API_URL + "/center/params/sends", json={"global_round": epoch + 1, "params": params}
+            API_URL + "/center/params/sends", json={"global_round": epoch + 1, "model_path": model_path}
         )
         print("response_1", res.json())
 
         # update global weights
         # TODO: receive weights and update here
-        response = requests.post(
-            API_URL + "/center/params/receives", json={"client_id": 1, "global_round": epoch + 1, "params": params}
+        # response = requests.post(
+        #     API_URL + "/center/params/receives", json={"client_id": 1, "global_round": epoch + 1, "params": params}
+        # )
+        # print("response_2", response.json())
+        response = requests.get(
+            API_URL + "/center/params", json={"global_round": epoch + 1}
         )
-        print("response_2", response.json())
-        global_weights = average_weights(local_weights)
+        response = response.json()
+        if "data" in response:
+            model_paths = response["data"]
+            local_params_list = [read_params_from_s3(path) for path in model_paths]
+        print(local_params_list)
+        global_weights = average_weights(local_params_list)
 
         # update global weights
         global_model.load_state_dict(global_weights)
 
-        loss_avg = sum(local_losses) / len(local_losses)
-        train_loss.append(loss_avg)
+        # loss_avg = sum(local_losses) / len(local_losses)
+        # train_loss.append(loss_avg)
 
         # Calculate avg training accuracy over all users at every epoch
         list_acc, list_loss = [], []

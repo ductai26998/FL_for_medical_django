@@ -14,11 +14,17 @@ class CenterEvent(models.Model):
     event_type = models.CharField(max_length=128, choices=EventType.choices)
     client = models.ForeignKey(
         Client, related_name="events", null=True, blank=True, on_delete=models.SET_NULL)
-    params = models.JSONField(
-        blank=True, null=True, default=dict, encoder=DjangoJSONEncoder)
+    model_path = models.CharField(
+        max_length=512, null=True, blank=True)
+
+    class Meta:
+        db_table = "center_event"
 
 
 class CenterConfig(models.Model):
     name = models.CharField(max_length=128)
-    value = models.TextField(max_length=128)
+    value = models.TextField()
     data_type = models.CharField(max_length=64)
+
+    class Meta:
+        db_table = "center_config"

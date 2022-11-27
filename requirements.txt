@@ -10,3 +10,4 @@ tensorboard
 Django==3.2.12
 mysqlclient==2.1.0
 djangorestframework==3.13.1
+boto3

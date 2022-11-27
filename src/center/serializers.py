@@ -4,7 +4,7 @@ from .models import CenterEvent
 
 class CenterSendsParamsInputSerializer(serializers.Serializer):
     global_round = serializers.IntegerField(required=True)
-    params = serializers.JSONField(required=True)
+    model_path = serializers.CharField(required=True)
 
 
 class CenterEventSerializer(serializers.ModelSerializer):
@@ -16,4 +16,4 @@ class CenterEventSerializer(serializers.ModelSerializer):
 class CenterReceivesParamsInputSerializer(serializers.Serializer):
     client_id = serializers.IntegerField(required=True)
     global_round = serializers.IntegerField(required=True)
-    params = serializers.JSONField(required=True)
+    model_path = serializers.CharField(required=True)

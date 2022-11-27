@@ -24,9 +24,9 @@ class CenterSendsParams(views.APIView):
 
                 # create event
                 global_round = data["global_round"]
-                params = data["params"]
+                model_path = data["model_path"]
                 CenterEvent.objects.create(event_type=EventType.CENTER_SENT_PARAMS,
-                                           client_id=client_id, global_round=global_round, params=params)
+                                           client_id=client_id, global_round=global_round, model_path=model_path)
             return Response(
                 {
                     "detail": "Sent params to clients successfully"
@@ -105,13 +105,13 @@ class CenterGetClientParams(views.APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        params_list = CenterEvent.objects.filter(
-            event_type=EventType.CENTER_RECEIVED_PARAMS,
+        model_path_list = CenterEvent.objects.filter(
+            event_type=EventType.CENTER_SENT_PARAMS,
             global_round=global_round
-        ).values_list("params", flat=True)
+        ).values_list("model_path", flat=True)
         return Response(
             {
-                "data": params_list
+                "data": model_path_list
             },
             status=status.HTTP_200_OK,
         )
