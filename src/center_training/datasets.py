@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 import torchvision.transforms as T
 import torchvision.transforms.functional as transform
@@ -20,7 +18,6 @@ class CustomDataset(Dataset):
         return len(self.img_labels)
 
     def __getitem__(self, idx):
-        # img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
         img_path = self.img_labels.iloc[idx, 0]
         origin_image = Image.open(img_path)
         size = (28, 28)

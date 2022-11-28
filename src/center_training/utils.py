@@ -1,4 +1,5 @@
 import copy
+import io
 import json
 import os
 import pickle
@@ -13,16 +14,11 @@ from tensorboardX import SummaryWriter
 from torchvision import datasets, transforms
 from tqdm import tqdm
 
+from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
 from . import API_URL, ROOT_PATH
 from .datasets import CustomDataset
 from .models import CNN, CNNOpt
-from .sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from .update import LocalUpdate, test_inference
-import io
-from ..utils.aws_s3 import upload_params_to_s3, read_params_from_s3
-
-
-# from imutils import paths
 
 
 def get_dataset():
@@ -50,9 +46,9 @@ def get_dataset():
     return train_dataset, test_dataset
 
 
-def average_weights(w):
+def average_params(w):
     """
-    Returns the average of the weights.
+    Returns the average of the params.
     """
     w_avg = copy.deepcopy(w[0])
     for key in w_avg.keys():
@@ -93,7 +89,7 @@ def train_center():
     num_channels = 1  # FIXME: get from db
     num_classes = 3  # FIXME: get from db
     num_users = 2  # FIXME: get from db
-    epochs = 10  # FIXME: get from db
+    epochs = 2  # FIXME: get from db
     use_gpu = False  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
     dataset = "custom"  # FIXME: get from db
@@ -105,7 +101,6 @@ def train_center():
     start_time = time.time()
 
     # define paths
-    path_project = os.path.abspath("..")
     logger = SummaryWriter(f"{ROOT_PATH}/results/logs")
 
     exp_details()
@@ -130,39 +125,21 @@ def train_center():
     # Set the model to train and send it to device.
     global_model.to(device)
     global_model.train()
-    print(global_model)
 
-    # copy weights
-    global_weights = global_model.state_dict()
-    # print("global_weights", global_weights)
+    # copy params
+    global_params = global_model.state_dict()
 
     # Training
     train_loss, train_accuracy = [], []
-    val_acc_list, net_list = [], []
-    cv_loss, cv_acc = [], []
     print_every = 2
-    val_loss_pre, counter = 0, 0
 
     for epoch in tqdm(range(epochs)):
         local_params_list, local_losses = [], []
         print(f"\n | Global Training Round : {epoch+1} |\n")
 
         global_model.train()
-        # m = max(int(frac * num_users), 1)
-        # idxs_users = np.random.choice(range(num_users), m, replace=False)
-
         params = global_model.state_dict()
-        # params = dict(params)
-        # for k, v in params.items():
-        #     # print(k)
-        #     # print(v.tolist())
-        #     params[k] = v.tolist()
-        # # params = global_model.parameters()
-        # # print("1111", dict(params))
         buffer = io.BytesIO()
-        # print("xxxx", json.dumps(params))
-        # torch.save(params, buffer)
-        # print("11111", pickle.loads(buffer.getvalue()))
         pickle.dump(params, buffer)
         model_path = upload_params_to_s3(
             buffer.getvalue(), "center_params", "global_model_round_%s.pkl" % (epoch+1))
@@ -171,8 +148,8 @@ def train_center():
         )
         print("response_1", res.json())
 
-        # update global weights
-        # TODO: receive weights and update here
+        # update global params
+        # TODO: receive params and update here
         # response = requests.post(
         #     API_URL + "/center/params/receives", json={"client_id": 1, "global_round": epoch + 1, "params": params}
         # )
@@ -186,10 +163,10 @@ def train_center():
             local_params_list = [read_params_from_s3(
                 path) for path in model_paths]
         print(local_params_list)
-        global_weights = average_weights(local_params_list)
+        global_params = average_params(local_params_list)
 
-        # update global weights
-        global_model.load_state_dict(global_weights)
+        # update global params
+        global_model.load_state_dict(global_params)
 
         # loss_avg = sum(local_losses) / len(local_losses)
         # train_loss.append(loss_avg)
