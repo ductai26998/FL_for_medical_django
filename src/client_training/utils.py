@@ -67,7 +67,7 @@ def exp_details():
     lr = 0.01  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
     local_bs = 10  # FIXME: get from db
-    local_ep = 100  # FIXME: get from db
+    local_ep = 1  # FIXME: get from db
 
     print("\nExperimental details:")
     print(f"    Model     : {model}")
@@ -88,7 +88,7 @@ def train_client(global_round, model_path):
     use_gpu = False  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
-    local_ep = 100  # FIXME: get from db
+    local_ep = 1  # FIXME: get from db
     local_bs = 10  # FIXME: get from db
 
     start_time = time.time()
@@ -125,6 +125,7 @@ def train_client(global_round, model_path):
 
     # Training
     train_loss, train_accuracy = [], []
+    # TODO: save train_accuracy of steps to db and compute average
 
     local_update = LocalUpdate(dataset=train_dataset, logger=logger)
     local_model.load_state_dict(global_params, strict=True)
@@ -135,20 +136,23 @@ def train_client(global_round, model_path):
     pickle.dump(local_params, buffer)
     model_path = upload_params_to_s3(
         buffer.getvalue(), "client_1_params", "local_model_round_%s.pkl" % (global_round))
+    # TODO: update current_model_path of client on db
     ## STEP 8: Client call api to sends params to center
+    print("STEP 8")
     requests.post(
         CLIENT_API_URL + "/client/params/sends", json={"global_round": global_round, "model_path": model_path}
     )
     ## STEP 11: Check call the client api to sends params to center success or not
+    print("STEP 11")
     # Test inference after completion of training
     test_acc, test_loss = test_inference(local_model, test_dataset)
 
     print(f" \n Results after {local_ep} times of training:")
-    print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
+    # print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
     print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = "{}/results/{}_{}_{}_C[{}]_E[{}]_B[{}].pkl".format(
+    file_name = "{}/results/{}_{}_{}_E[{}]_B[{}].pkl".format(
         ROOT_PATH,
         model,
         global_round,
@@ -173,7 +177,7 @@ def train_client(global_round, model_path):
     plt.ylabel("Training loss")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_C[{}]_E[{}]_B[{}]_loss.png".format(
+        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_loss.png".format(
             ROOT_PATH,
             model,
             global_round,
@@ -190,7 +194,7 @@ def train_client(global_round, model_path):
     plt.ylabel("Average Accuracy")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_C[{}]_E[{}]_B[{}]_acc.png".format(
+        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_acc.png".format(
             ROOT_PATH,
             model,
             global_round,

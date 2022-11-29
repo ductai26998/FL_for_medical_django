@@ -62,7 +62,7 @@ def exp_details():
     lr = 0.01  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
     local_bs = 10  # FIXME: get from db
-    local_ep = 100  # FIXME: get from db
+    local_ep = 1  # FIXME: get from db
 
     print("\nExperimental details:")
     print(f"    Model     : {model}")
@@ -86,7 +86,7 @@ def train_center(global_round=1):
     model = "cnn"  # FIXME: get from db
     dataset = "custom"  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
-    local_ep = 100  # FIXME: get from db
+    local_ep = 1  # FIXME: get from db
     local_bs = 10  # FIXME: get from db
 
     start_time = time.time()
@@ -118,6 +118,8 @@ def train_center(global_round=1):
 
     # Training
     train_loss, train_accuracy = [], []
+    # TODO: save train_accuracy of steps to db and compute average
+
     print_every = 2
 
     if global_round < epochs:
@@ -127,9 +129,11 @@ def train_center(global_round=1):
         global_model.train()
         if global_round == 1:
             ## STEP 1: Center init params
+            print("STEP 1")
             global_params = global_model.state_dict()
         else:
             ## STEP 14: Center calculate params and retrain FL
+            print("STEP 14")
             response = requests.get(
                 CENTER_API_URL + "/center/params", json={"global_round": global_round}
             )
@@ -145,46 +149,47 @@ def train_center(global_round=1):
         model_path = upload_params_to_s3(
             buffer.getvalue(), "center_params", "global_model_round_%s.pkl" % (global_round))
         ## STEP 2: Center create event and send params to clients
+        print("STEP 2")
         res = requests.post(
             CENTER_API_URL + "/center/params/sends", json={"global_round": global_round, "model_path": model_path}
         )
         print("response_1", res.json())
 
         ## STEP 5: Check call the center api to sends params to client and create event success or not
+        print("STEP 5")
 
         # loss_avg = sum(local_losses) / len(local_losses)
         # train_loss.append(loss_avg)
 
-        # Calculate avg training accuracy over all users at every epoch
-        list_acc, list_loss = [], []
-        global_model.eval()
-        for c in range(num_users):
-            local_update = LocalUpdate(
-                dataset=train_dataset, logger=logger
-            )
-            acc, loss = local_update.inference(model=global_model)
-            list_acc.append(acc)
-            list_loss.append(loss)
-        train_accuracy.append(sum(list_acc) / len(list_acc))
+        # # Calculate avg training accuracy over all users at every epoch
+        # list_acc, list_loss = [], []
+        # global_model.eval()
+        # for c in range(num_users):
+        #     local_update = LocalUpdate(
+        #         dataset=train_dataset, logger=logger
+        #     )
+        #     acc, loss = local_update.inference(model=global_model)
+        #     list_acc.append(acc)
+        #     list_loss.append(loss)
+        # train_accuracy.append(sum(list_acc) / len(list_acc))
 
         # print global training loss after every 'i' rounds
         if (global_round) % print_every == 0:
             print(f" \nAvg Training Stats after {global_round} global rounds:")
             print(f"Training Loss : {np.mean(np.array(train_loss))}")
-            print("Train Accuracy: {:.2f}% \n".format(
-                100 * train_accuracy[-1]))
+            # print("Train Accuracy: {:.2f}% \n".format(
+            #     100 * train_accuracy[-1]))
 
     # Test inference after completion of training
     test_acc, test_loss = test_inference(global_model, test_dataset)
 
     print(f" \n Results after {epochs} global rounds of training:")
-    print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
+    # print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
     print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = "{}/results/{}_{}_{}_C[{}]_E[{}]_B[{}].pkl".format(
+    file_name = "{}/results/{}_{}_{}_E[{}]_B[{}].pkl".format(
         ROOT_PATH,
-        dataset,
         model,
         epochs,
         frac,
@@ -208,9 +213,8 @@ def train_center(global_round=1):
     plt.ylabel("Training loss")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_C[{}]_E[{}]_B[{}]_loss.png".format(
+        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_loss.png".format(
             ROOT_PATH,
-            dataset,
             model,
             epochs,
             frac,
@@ -226,9 +230,8 @@ def train_center(global_round=1):
     plt.ylabel("Average Accuracy")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_C[{}]_E[{}]_B[{}]_acc.png".format(
+        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_acc.png".format(
             ROOT_PATH,
-            dataset,
             model,
             epochs,
             frac,

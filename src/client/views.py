@@ -19,12 +19,14 @@ class ClientSendsParams(views.APIView):
         if serializer.is_valid():
             serializer.validated_data
             ## STEP 9: Client sends params to center
+            print("STEP 9")
             global_round = data["global_round"]
             model_path = data["model_path"]
             requests.post(
                 CENTER_API_URL + "/center/params/receives", json={"client_id": CLIENT_ID, "global_round": global_round, "model_path": model_path}
             )
             ## STEP 10: Check client sends params to center success or not
+            print("STEP 10")
             # FIXME: if send params fail -> resend
             return Response(
                 {
@@ -47,6 +49,7 @@ class ClientReceivesParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
         ## STEP 6: Client received params from center
+        print("STEP 6")
         data = request.data
         serializer = ClientReceivesParamsInputSerializer(data=data)
         if serializer.is_valid():
@@ -54,6 +57,7 @@ class ClientReceivesParams(views.APIView):
             global_round = data["global_round"]
             model_path = data["model_path"]
             ## STEP 7: Client trains its model with above params
+            print("STEP 7")
             train_client(global_round, model_path)
             return Response(
                 {

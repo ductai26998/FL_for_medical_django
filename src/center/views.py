@@ -24,12 +24,14 @@ class CenterSendsParams(views.APIView):
                 global_round = data["global_round"]
                 model_path = data["model_path"]
                 ## STEP 3: Center send params to clients
+                print("STEP 3")
                 res = requests.post(
                     # FIXME: update URL -> client URL
                     CLIENT_API_URL + "/client/params/receives", json={"global_round": global_round, "model_path": model_path}
                 )
                 if res.ok:
-                    # STEP 4: Check send params to clients success or not
+                    ## STEP 4: Check send params to clients success or not
+                    print("STEP 4")
                     # create event
                     # FIXME: divide to fail case and success case with is_success field
                     CenterEvent.objects.create(event_type=EventType.CENTER_SENT_PARAMS,
@@ -55,6 +57,7 @@ class CenterReceivesParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
         ## STEP 12: Center receives params from client
+        print("STEP 12")
         data = request.data
         client_id = data["client_id"]
         serializer = CenterReceivesParamsInputSerializer(data=data)
@@ -82,6 +85,7 @@ class CenterReceivesParams(views.APIView):
                 )
             if len(event_clients) >= len(client_ids) - 1:
                 # STEP 13: Center calculate params
+                print("STEP 13")
                 train_center(global_round + 1)
             CenterEvent.objects.create(
                 event_type=EventType.CENTER_RECEIVED_PARAMS, **data)
