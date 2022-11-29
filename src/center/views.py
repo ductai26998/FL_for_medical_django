@@ -1,12 +1,14 @@
-from django.core.exceptions import ValidationError
+import requests
 from rest_framework import status, views
 from rest_framework.response import Response
+from ..center_training.utils import train_center
 
-from . import ErrorCode
-from .serializers import CenterSendsParamsInputSerializer, CenterEventSerializer, CenterReceivesParamsInputSerializer
-from ..client.models import Client
+from .. import CLIENT_API_URL
 from ..center.models import CenterEvent
-from . import EventType
+from ..client.models import Client
+from . import ErrorCode, EventType
+from .serializers import (CenterReceivesParamsInputSerializer,
+                          CenterSendsParamsInputSerializer)
 
 
 class CenterSendsParams(views.APIView):
@@ -19,14 +21,19 @@ class CenterSendsParams(views.APIView):
 
             client_ids = Client.objects.values_list("id", flat=True)
             for client_id in client_ids:
-                print(client_id)
-                # TODO: send params to clients. if can not send, return
-
-                # create event
                 global_round = data["global_round"]
                 model_path = data["model_path"]
-                CenterEvent.objects.create(event_type=EventType.CENTER_SENT_PARAMS,
-                                           client_id=client_id, global_round=global_round, model_path=model_path)
+                ## STEP 3: Center send params to clients
+                res = requests.post(
+                    # FIXME: update URL -> client URL
+                    CLIENT_API_URL + "/client/params/receives", json={"global_round": global_round, "model_path": model_path}
+                )
+                if res.ok:
+                    # STEP 4: Check send params to clients success or not
+                    # create event
+                    # FIXME: divide to fail case and success case with is_success field
+                    CenterEvent.objects.create(event_type=EventType.CENTER_SENT_PARAMS,
+                                               client_id=client_id, global_round=global_round, model_path=model_path)
             return Response(
                 {
                     "detail": "Sent params to clients successfully"
@@ -47,6 +54,7 @@ class CenterSendsParams(views.APIView):
 class CenterReceivesParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
+        ## STEP 12: Center receives params from client
         data = request.data
         client_id = data["client_id"]
         serializer = CenterReceivesParamsInputSerializer(data=data)
@@ -72,7 +80,9 @@ class CenterReceivesParams(views.APIView):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            # TODO: receives params from client and train the global model
+            if len(event_clients) >= len(client_ids) - 1:
+                # STEP 13: Center calculate params
+                train_center(global_round + 1)
             CenterEvent.objects.create(
                 event_type=EventType.CENTER_RECEIVED_PARAMS, **data)
             return Response(

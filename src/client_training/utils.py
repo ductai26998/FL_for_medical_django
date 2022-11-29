@@ -14,7 +14,7 @@ from tensorboardX import SummaryWriter
 from torchvision import datasets, transforms
 from tqdm import tqdm
 
-from .. import CENTER_API_URL, ROOT_PATH
+from .. import CLIENT_API_URL, ROOT_PATH
 from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
 from .datasets import CustomDataset
 from .models import CNN, CNNOpt
@@ -31,6 +31,11 @@ def get_dataset():
     train_annotations_file = f"{ROOT_PATH}/data/custom/train/annotations.csv"
     test_img_dir = f"{ROOT_PATH}/data/custom/test/images"
     test_annotations_file = f"{ROOT_PATH}/data/custom/test/annotations.csv"
+    # train_img_dir = f"src/client_training/data/custom/train/images"
+    # train_annotations_file = f"src/client_training/data/custom/train/annotations.csv"
+    # test_img_dir = f"src/client_training/data/custom/test/images"
+    # test_annotations_file = f"src/client_training/data/custom/test/annotations.csv"
+
     train_dataset = CustomDataset(
         annotations_file=train_annotations_file,
         img_dir=train_img_dir,
@@ -77,14 +82,11 @@ def exp_details():
     return
 
 
-def train_center(global_round=1):
+def train_client(global_round, model_path):
     num_channels = 1  # FIXME: get from db
     num_classes = 3  # FIXME: get from db
-    num_users = 2  # FIXME: get from db
-    epochs = 2  # FIXME: get from db
     use_gpu = False  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
-    dataset = "custom"  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
     local_ep = 100  # FIXME: get from db
     local_bs = 10  # FIXME: get from db
@@ -106,87 +108,50 @@ def train_center(global_round=1):
     # BUILD MODEL
     if model == "cnn":
         # Convolutional neural network
-        global_model = CNN(num_channels=num_channels, num_classes=num_classes)
+        local_model = CNN(num_channels=num_channels, num_classes=num_classes)
     elif model == "cnnopt":
-        global_model = CNNOpt()
+        local_model = CNNOpt()
     else:
         exit("Error: unrecognized model")
 
     # Set the model to train and send it to device.
-    global_model.to(device)
-    global_model.train()
+    local_model.to(device)
+    local_model.train()
+
+    # TODO: get params of center
+    # global_params = local_model.state_dict()
+    global_params = read_params_from_s3(model_path)
+    # global_round = 1  # FIXME: get from db
 
     # Training
     train_loss, train_accuracy = [], []
-    print_every = 2
 
-    if global_round < epochs:
-        local_params_list, local_losses = [], []
-        print(f"\n | Global Training Round : {global_round} |\n")
-
-        global_model.train()
-        if global_round == 1:
-            ## STEP 1: Center init params
-            global_params = global_model.state_dict()
-        else:
-            ## STEP 14: Center calculate params and retrain FL
-            response = requests.get(
-                CENTER_API_URL + "/center/params", json={"global_round": global_round}
-            )
-            response = response.json()
-            if "data" in response:
-                model_paths = response["data"]
-                local_params_list = [read_params_from_s3(
-                    path) for path in model_paths]
-            global_params = average_params(local_params_list)
-
-        buffer = io.BytesIO()
-        pickle.dump(global_params, buffer)
-        model_path = upload_params_to_s3(
-            buffer.getvalue(), "center_params", "global_model_round_%s.pkl" % (global_round))
-        ## STEP 2: Center create event and send params to clients
-        res = requests.post(
-            CENTER_API_URL + "/center/params/sends", json={"global_round": global_round, "model_path": model_path}
-        )
-        print("response_1", res.json())
-
-        ## STEP 5: Check call the center api to sends params to client and create event success or not
-
-        # loss_avg = sum(local_losses) / len(local_losses)
-        # train_loss.append(loss_avg)
-
-        # Calculate avg training accuracy over all users at every epoch
-        list_acc, list_loss = [], []
-        global_model.eval()
-        for c in range(num_users):
-            local_update = LocalUpdate(
-                dataset=train_dataset, logger=logger
-            )
-            acc, loss = local_update.inference(model=global_model)
-            list_acc.append(acc)
-            list_loss.append(loss)
-        train_accuracy.append(sum(list_acc) / len(list_acc))
-
-        # print global training loss after every 'i' rounds
-        if (global_round) % print_every == 0:
-            print(f" \nAvg Training Stats after {global_round} global rounds:")
-            print(f"Training Loss : {np.mean(np.array(train_loss))}")
-            print("Train Accuracy: {:.2f}% \n".format(
-                100 * train_accuracy[-1]))
-
+    local_update = LocalUpdate(dataset=train_dataset, logger=logger)
+    local_model.load_state_dict(global_params, strict=True)
+    local_params, loss = local_update.update_weights(
+        model=local_model, global_round=global_round
+    )
+    buffer = io.BytesIO()
+    pickle.dump(local_params, buffer)
+    model_path = upload_params_to_s3(
+        buffer.getvalue(), "client_1_params", "local_model_round_%s.pkl" % (global_round))
+    ## STEP 8: Client call api to sends params to center
+    requests.post(
+        CLIENT_API_URL + "/client/params/sends", json={"global_round": global_round, "model_path": model_path}
+    )
+    ## STEP 11: Check call the client api to sends params to center success or not
     # Test inference after completion of training
-    test_acc, test_loss = test_inference(global_model, test_dataset)
+    test_acc, test_loss = test_inference(local_model, test_dataset)
 
-    print(f" \n Results after {epochs} global rounds of training:")
+    print(f" \n Results after {local_ep} times of training:")
     print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
     print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
     # Saving the objects train_loss and train_accuracy:
     file_name = "{}/results/{}_{}_{}_C[{}]_E[{}]_B[{}].pkl".format(
         ROOT_PATH,
-        dataset,
         model,
-        epochs,
+        global_round,
         frac,
         local_ep,
         local_bs,
@@ -210,9 +175,8 @@ def train_center(global_round=1):
     plt.savefig(
         "{}/results/fed_{}_{}_{}_C[{}]_E[{}]_B[{}]_loss.png".format(
             ROOT_PATH,
-            dataset,
             model,
-            epochs,
+            global_round,
             frac,
             local_ep,
             local_bs,
@@ -228,9 +192,8 @@ def train_center(global_round=1):
     plt.savefig(
         "{}/results/fed_{}_{}_{}_C[{}]_E[{}]_B[{}]_acc.png".format(
             ROOT_PATH,
-            dataset,
             model,
-            epochs,
+            global_round,
             frac,
             local_ep,
             local_bs,

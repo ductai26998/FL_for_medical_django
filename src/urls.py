@@ -19,6 +19,7 @@ from django.urls import path
 
 from .center.views import (CenterGetClientParams, CenterReceivesParams,
                            CenterSendsParams)
+from .client.views import ClientReceivesParams, ClientSendsParams
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,4 +28,9 @@ urlpatterns = [
     url("center/params/receives", CenterReceivesParams.as_view(),
         name="center_receives_params"),
     url("center/params", CenterGetClientParams.as_view(), name="center_get_params"),
+    # FIXME: move client urls to client device
+    url("client/params/sends", ClientSendsParams.as_view(),
+        name="client_sends_params"),
+    url("client/params/receives", ClientReceivesParams.as_view(),
+        name="client_receives_params"),
 ]
