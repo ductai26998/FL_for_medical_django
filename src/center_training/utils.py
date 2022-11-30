@@ -132,8 +132,8 @@ def train_center(global_round=1):
             print("STEP 1")
             global_params = global_model.state_dict()
         else:
-            ## STEP 14: Center calculate params and retrain FL
-            print("STEP 14")
+            ## STEP 10: Center calculate params and retrain FL
+            print("STEP 10")
             response = requests.get(
                 CENTER_API_URL + "/center/params", json={"global_round": global_round}
             )
@@ -154,9 +154,6 @@ def train_center(global_round=1):
             CENTER_API_URL + "/center/params/sends", json={"global_round": global_round, "model_path": model_path}
         )
         print("response_1", res.json())
-
-        ## STEP 5: Check call the center api to sends params to client and create event success or not
-        print("STEP 5")
 
         # loss_avg = sum(local_losses) / len(local_losses)
         # train_loss.append(loss_avg)
