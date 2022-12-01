@@ -1,7 +1,5 @@
 import copy
 import io
-import json
-import os
 import pickle
 import time
 
@@ -12,7 +10,6 @@ import requests
 import torch
 from tensorboardX import SummaryWriter
 from torchvision import datasets, transforms
-from tqdm import tqdm
 
 from .. import CLIENT_API_URL, ROOT_PATH
 from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
@@ -61,11 +58,10 @@ def average_params(w):
 
 
 def exp_details():
-    epochs = 10  # FIXME: get from db
+    global_round = 10  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
     optimizer = "sgd"  # FIXME: get from db
     lr = 0.01  # FIXME: get from db
-    frac = 0.1  # FIXME: get from db
     local_bs = 10  # FIXME: get from db
     local_ep = 1  # FIXME: get from db
 
@@ -73,10 +69,9 @@ def exp_details():
     print(f"    Model     : {model}")
     print(f"    Optimizer : {optimizer}")
     print(f"    Learning  : {lr}")
-    print(f"    Global Rounds   : {epochs}\n")
+    print(f"    Global Round   : {global_round}\n")
 
     print("    Federated parameters:")
-    print(f"    Fraction of users  : {frac}")
     print(f"    Local Batch size   : {local_bs}")
     print(f"    Local Epochs       : {local_ep}\n")
     return
@@ -87,7 +82,6 @@ def train_client(global_round, model_path):
     num_classes = 3  # FIXME: get from db
     use_gpu = False  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
-    frac = 0.1  # FIXME: get from db
     local_ep = 1  # FIXME: get from db
     local_bs = 10  # FIXME: get from db
 
@@ -102,7 +96,7 @@ def train_client(global_round, model_path):
     device = "cuda" if use_gpu else "cpu"
     print(device)
 
-    # load dataset and user groups
+    # load dataset
     train_dataset, test_dataset = get_dataset()
 
     # BUILD MODEL
@@ -137,7 +131,7 @@ def train_client(global_round, model_path):
     model_path = upload_params_to_s3(
         buffer.getvalue(), "client_1_params", "local_model_round_%s.pkl" % (global_round))
     # TODO: update current_model_path of client on db
-    ## STEP 6: Client call api to sends params to center
+    # STEP 6: Client call api to sends params to center
     print("STEP 6")
     requests.post(
         CLIENT_API_URL + "/client/params/sends", json={"global_round": global_round, "model_path": model_path}
@@ -145,16 +139,16 @@ def train_client(global_round, model_path):
     # Test inference after completion of training
     test_acc, test_loss = test_inference(local_model, test_dataset)
 
-    print(f" \n Results after {local_ep} times of training:")
+    print(
+        f" \n Results after {local_ep} times of local training and {global_round} times global training:")
     # print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
     print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = "{}/results/{}_{}_{}_E[{}]_B[{}].pkl".format(
+    file_name = "{}/results/{}_{}_E[{}]_B[{}].pkl".format(
         ROOT_PATH,
         model,
         global_round,
-        frac,
         local_ep,
         local_bs,
     )
@@ -175,11 +169,10 @@ def train_client(global_round, model_path):
     plt.ylabel("Training loss")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_loss.png".format(
+        "{}/results/fed_{}_{}_E[{}]_B[{}]_loss.png".format(
             ROOT_PATH,
             model,
             global_round,
-            frac,
             local_ep,
             local_bs,
         )
@@ -192,11 +185,10 @@ def train_client(global_round, model_path):
     plt.ylabel("Average Accuracy")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_acc.png".format(
+        "{}/results/fed_{}_{}_E[{}]_B[{}]_acc.png".format(
             ROOT_PATH,
             model,
             global_round,
-            frac,
             local_ep,
             local_bs,
         )

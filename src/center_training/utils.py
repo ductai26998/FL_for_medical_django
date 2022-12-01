@@ -1,7 +1,5 @@
 import copy
 import io
-import json
-import os
 import pickle
 import time
 
@@ -11,36 +9,10 @@ import numpy as np
 import requests
 import torch
 from tensorboardX import SummaryWriter
-from torchvision import datasets, transforms
-from tqdm import tqdm
 
 from .. import CENTER_API_URL, ROOT_PATH
 from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
-from .datasets import CustomDataset
 from .models import CNN, CNNOpt
-from .update import LocalUpdate, test_inference
-
-
-def get_dataset():
-    """Returns train and test datasets and a user group which is a dict where
-    the keys are the user index and the values are the corresponding data for
-    each of those users.
-    """
-
-    train_img_dir = f"{ROOT_PATH}/data/custom/train/images"
-    train_annotations_file = f"{ROOT_PATH}/data/custom/train/annotations.csv"
-    test_img_dir = f"{ROOT_PATH}/data/custom/test/images"
-    test_annotations_file = f"{ROOT_PATH}/data/custom/test/annotations.csv"
-    train_dataset = CustomDataset(
-        annotations_file=train_annotations_file,
-        img_dir=train_img_dir,
-    )
-    test_dataset = CustomDataset(
-        annotations_file=test_annotations_file,
-        img_dir=test_img_dir,
-    )
-
-    return train_dataset, test_dataset
 
 
 def average_params(w):
@@ -59,35 +31,22 @@ def exp_details():
     epochs = 10  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
     optimizer = "sgd"  # FIXME: get from db
-    lr = 0.01  # FIXME: get from db
-    frac = 0.1  # FIXME: get from db
-    local_bs = 10  # FIXME: get from db
-    local_ep = 1  # FIXME: get from db
 
     print("\nExperimental details:")
     print(f"    Model     : {model}")
     print(f"    Optimizer : {optimizer}")
-    print(f"    Learning  : {lr}")
     print(f"    Global Rounds   : {epochs}\n")
 
     print("    Federated parameters:")
-    print(f"    Fraction of users  : {frac}")
-    print(f"    Local Batch size   : {local_bs}")
-    print(f"    Local Epochs       : {local_ep}\n")
     return
 
 
 def train_center(global_round=1):
     num_channels = 1  # FIXME: get from db
     num_classes = 3  # FIXME: get from db
-    num_users = 2  # FIXME: get from db
     epochs = 2  # FIXME: get from db
     use_gpu = False  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
-    dataset = "custom"  # FIXME: get from db
-    frac = 0.1  # FIXME: get from db
-    local_ep = 1  # FIXME: get from db
-    local_bs = 10  # FIXME: get from db
 
     start_time = time.time()
 
@@ -99,9 +58,6 @@ def train_center(global_round=1):
         torch.cuda.set_device(use_gpu)
     device = "cuda" if use_gpu else "cpu"
     print(device)
-
-    # load dataset and user groups
-    train_dataset, test_dataset = get_dataset()
 
     # BUILD MODEL
     if model == "cnn":
@@ -128,11 +84,11 @@ def train_center(global_round=1):
 
         global_model.train()
         if global_round == 1:
-            ## STEP 1: Center init params
+            # STEP 1: Center init params
             print("STEP 1")
             global_params = global_model.state_dict()
         else:
-            ## STEP 10: Center calculate params and retrain FL
+            # STEP 10: Center calculate params and retrain FL
             print("STEP 10")
             response = requests.get(
                 CENTER_API_URL + "/center/params", json={"global_round": global_round}
@@ -148,7 +104,7 @@ def train_center(global_round=1):
         pickle.dump(global_params, buffer)
         model_path = upload_params_to_s3(
             buffer.getvalue(), "center_params", "global_model_round_%s.pkl" % (global_round))
-        ## STEP 2: Center create event and send params to clients
+        # STEP 2: Center create event and send params to clients
         print("STEP 2")
         res = requests.post(
             CENTER_API_URL + "/center/params/sends", json={"global_round": global_round, "model_path": model_path}
@@ -177,21 +133,15 @@ def train_center(global_round=1):
             # print("Train Accuracy: {:.2f}% \n".format(
             #     100 * train_accuracy[-1]))
 
-    # Test inference after completion of training
-    test_acc, test_loss = test_inference(global_model, test_dataset)
-
     print(f" \n Results after {epochs} global rounds of training:")
     # print("|---- Avg Train Accuracy: {:.2f}%".format(100 * train_accuracy[-1]))
-    print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
+    # print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = "{}/results/{}_{}_{}_E[{}]_B[{}].pkl".format(
+    file_name = "{}/results/{}_{}.pkl".format(
         ROOT_PATH,
         model,
         epochs,
-        frac,
-        local_ep,
-        local_bs,
     )
 
     with open(file_name, "wb") as f:
@@ -210,13 +160,10 @@ def train_center(global_round=1):
     plt.ylabel("Training loss")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_loss.png".format(
+        "{}/results/fed_{}_{}_loss.png".format(
             ROOT_PATH,
             model,
             epochs,
-            frac,
-            local_ep,
-            local_bs,
         )
     )
 
@@ -227,12 +174,9 @@ def train_center(global_round=1):
     plt.ylabel("Average Accuracy")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_{}_E[{}]_B[{}]_acc.png".format(
+        "{}/results/fed_{}_{}_acc.png".format(
             ROOT_PATH,
             model,
             epochs,
-            frac,
-            local_ep,
-            local_bs,
         )
     )
