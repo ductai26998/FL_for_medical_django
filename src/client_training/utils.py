@@ -133,9 +133,10 @@ def train_client(global_round, model_path):
     # TODO: update current_model_path of client on db
     # STEP 6: Client call api to sends params to center
     print("STEP 6")
-    requests.post(
+    res = requests.post(
         CLIENT_API_URL + "/client/params/sends", json={"global_round": global_round, "model_path": model_path}
     )
+    print("/center/params/receives", res.json())
     # Test inference after completion of training
     test_acc, test_loss = test_inference(local_model, test_dataset)
 

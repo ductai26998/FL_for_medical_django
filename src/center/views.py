@@ -30,6 +30,7 @@ class CenterSendsParams(views.APIView):
                 res = requests.post(
                     CLIENT_API_URL + "/client/params/receives", json={"global_round": global_round, "model_path": model_path}
                 )
+                print("/client/params/receives", res.json())
                 # if res.ok:
                 #     # FIXME: divide to fail case and success case with is_success field
             return Response(

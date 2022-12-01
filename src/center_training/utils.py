@@ -93,6 +93,7 @@ def train_center(global_round=1):
             response = requests.get(
                 CENTER_API_URL + "/center/params", json={"global_round": global_round}
             )
+            print("/center/params", response.json())
             response = response.json()
             if "data" in response:
                 model_paths = response["data"]
@@ -109,7 +110,7 @@ def train_center(global_round=1):
         res = requests.post(
             CENTER_API_URL + "/center/params/sends", json={"global_round": global_round, "model_path": model_path}
         )
-        print("response_1", res.json())
+        print("/center/params/sends", res.json())
 
         # loss_avg = sum(local_losses) / len(local_losses)
         # train_loss.append(loss_avg)
