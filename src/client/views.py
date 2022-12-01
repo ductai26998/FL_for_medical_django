@@ -22,9 +22,10 @@ class ClientSendsParams(views.APIView):
             print("STEP 7")
             global_round = data["global_round"]
             model_path = data["model_path"]
-            requests.post(
+            res = requests.post(
                 CENTER_API_URL + "/center/params/receives", json={"client_id": CLIENT_ID, "global_round": global_round, "model_path": model_path}
             )
+            print("/center/params/sends", res.json())
             # FIXME: if send params fail -> resend
             return Response(
                 {
