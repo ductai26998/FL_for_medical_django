@@ -39,8 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'src',
-    'src.center',
-    'src.client',
+    'src.device',
+    # 'src.center',
+    # 'src.client',
 ]
 
 MIDDLEWARE = [
@@ -89,6 +90,18 @@ DATABASES = {
         "PORT": os.getenv("MYSQL_PORT", "3306"),
     }
 }
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": os.getenv("MYSQL_DATABASE", "fl_for_medical"),
+#         "USER": os.getenv("MYSQL_USER", "root"),
+#         "PASSWORD": os.getenv("MYSQL_PASSWORD", ""),
+#         "HOST": os.getenv(
+#             "MYSQL_HOST", "localhost"
+#         ),
+#         "PORT": os.getenv("MYSQL_PORT", "3306"),
+#     }
+# }
 
 
 # Password validation
