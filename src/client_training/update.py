@@ -61,7 +61,7 @@ class LocalUpdate(object):
     def update_weights(self, model, global_round):
         optimizer = "adam"  # FIXME: get from db
         lr = 0.01  # FIXME: get from db
-        local_ep = 100  # FIXME: get from db
+        local_ep = 5  # FIXME: get from db
         verbose = 1  # FIXME: get from db
 
         # Set mode to train model

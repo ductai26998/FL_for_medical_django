@@ -67,7 +67,7 @@ def exp_details():
     lr = 0.01  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
     local_bs = 32  # FIXME: get from db
-    local_ep = 100  # FIXME: get from db
+    local_ep = 5  # FIXME: get from db
 
     print("\nExperimental details:")
     print(f"    Model     : {model}")
@@ -88,7 +88,7 @@ def train_client(global_round, model_path):
     use_gpu = False  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
-    local_ep = 100  # FIXME: get from db
+    local_ep = 5  # FIXME: get from db
     local_bs = 32  # FIXME: get from db
 
     start_time = time.time()
