@@ -26,7 +26,11 @@ SECRET_KEY = 'django-insecure-v8%3#z@mb@2202-0+_o9&(!rxq@s1@#9)axx7a+cx3x^)f3$kv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "eeb4-117-2-255-218.ap.ngrok.io",
+    "b8e9-117-2-255-218.ap.ngrok.io",
+    "535f-117-2-255-218.ap.ngrok.io"
+]
 
 
 # Application definition
@@ -136,6 +140,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # aws
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "AKIAYXJ7HLKL3LADNLFG")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "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")
-FOLDER = os.getenv("TRAIN", "dev_train")
-AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "fl-for-medical")
+AWS_SECRET_ACCESS_KEY = os.getenv(
+    "AWS_SECRET_ACCESS_KEY", "F7T3XU5TXXPiJQL5Uw66FePEkZ8mCHzSUauuK1og")
+FOLDER = os.getenv("TRAIN", "lab_train")
+AWS_STORAGE_BUCKET_NAME = os.getenv(
+    "AWS_STORAGE_BUCKET_NAME", "fl-for-medical")

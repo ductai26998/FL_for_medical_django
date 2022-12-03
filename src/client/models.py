@@ -10,6 +10,7 @@ class Client(models.Model):
     name = models.CharField(max_length=64)
     current_model_path = models.CharField(
         max_length=512, null=True, blank=True)
+    api_url = models.CharField(max_length=64, blank=True, null=True)
 
     class Meta:
         db_table = "client"
