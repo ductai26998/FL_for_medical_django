@@ -59,7 +59,7 @@ class LocalUpdate(object):
         return trainloader, validloader, testloader
 
     def update_weights(self, model, global_round):
-        optimizer = "sgd"  # FIXME: get from db
+        optimizer = "adam"  # FIXME: get from db
         lr = 0.01  # FIXME: get from db
         local_ep = 100  # FIXME: get from db
         verbose = 1  # FIXME: get from db

@@ -63,7 +63,7 @@ def average_params(w):
 def exp_details():
     epochs = 10  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
-    optimizer = "sgd"  # FIXME: get from db
+    optimizer = "adam"  # FIXME: get from db
     lr = 0.01  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
     local_bs = 32  # FIXME: get from db
