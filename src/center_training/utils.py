@@ -51,7 +51,7 @@ def train_center(global_round=1):
 
     start_time = time.time()
 
-    logger = SummaryWriter(f"{ROOT_PATH}/results/logs")
+    logger = SummaryWriter(f"{ROOT_PATH}/results/client/logs")
 
     exp_details()
 
@@ -74,12 +74,10 @@ def train_center(global_round=1):
     global_model.train()
 
     # Training
-    train_loss, train_accuracy = [], []
-    # TODO: save train_accuracy of steps to db and compute average
-
     print_every = 2
 
     if global_round < epochs:
+        train_loss_list, train_acc_list = [], []
         local_params_list, local_losses = [], []
         print(f"\n | Global Training Round : {global_round} |\n")
 
@@ -92,9 +90,9 @@ def train_center(global_round=1):
             # STEP 10: Center calculate params and retrain FL
             print("STEP 10", timezone.now())
             response = requests.get(
-                CENTER_API_URL + "/center/params", json={"global_round": global_round}
+                CENTER_API_URL + "/center/get-client-params", json={"global_round": global_round}
             )
-            print("/center/params", response.json())
+            print("/center/get-client-params", response.json())
             response = response.json()
             if "data" in response:
                 model_paths = response["data"]
@@ -140,7 +138,7 @@ def train_center(global_round=1):
     # print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = "{}/results/{}_{}.pkl".format(
+    file_name = "{}/results/client/{}_{}.pkl".format(
         ROOT_PATH,
         model,
         epochs,
@@ -162,7 +160,7 @@ def train_center(global_round=1):
     plt.ylabel("Training loss")
     plt.xlabel("Communication Rounds")
     plt.savefig(
-        "{}/results/fed_{}_{}_loss.png".format(
+        "{}/results/client/fed_{}_{}_loss.png".format(
             ROOT_PATH,
             model,
             epochs,

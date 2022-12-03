@@ -84,8 +84,8 @@ class LocalUpdate(object):
                 images, labels = images.to(self.device), labels.to(self.device)
 
                 model.zero_grad()
-                log_probs = model(images)
-                loss = self.criterion(log_probs, labels)
+                outputs = model(images)
+                loss = self.criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
 

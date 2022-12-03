@@ -30,7 +30,7 @@ urlpatterns = [
         name="center_sends_params"),
     url("center/params/receives", CenterReceivesParams.as_view(),
         name="center_receives_params"),
-    url("center/params", CenterGetClientParams.as_view(), name="center_get_params"),
+    url("center/get-client-params", CenterGetClientParams.as_view(), name="center_get_params"),
     # FIXME: move client urls to client device
     url("client/params/sends", ClientSendsParams.as_view(),
         name="client_sends_params"),
