@@ -35,7 +35,7 @@ class LocalUpdate(object):
         Returns train, validation and test dataloaders for a given dataset
         and user indexes.
         """
-        local_bs = 10  # FIXME: get from db
+        local_bs = 32  # FIXME: get from db
         # split indexes for train, validation, and test (80, 10, 10)
         idxs_train = idxs[: int(0.8 * len(idxs))]
         idxs_val = idxs[int(0.8 * len(idxs)): int(0.9 * len(idxs))]
@@ -61,7 +61,7 @@ class LocalUpdate(object):
     def update_weights(self, model, global_round):
         optimizer = "sgd"  # FIXME: get from db
         lr = 0.01  # FIXME: get from db
-        local_ep = 1  # FIXME: get from db
+        local_ep = 100  # FIXME: get from db
         verbose = 1  # FIXME: get from db
 
         # Set mode to train model

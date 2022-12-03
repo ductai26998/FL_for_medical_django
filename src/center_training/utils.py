@@ -61,8 +61,8 @@ def exp_details():
     optimizer = "sgd"  # FIXME: get from db
     lr = 0.01  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
-    local_bs = 10  # FIXME: get from db
-    local_ep = 1  # FIXME: get from db
+    local_bs = 32  # FIXME: get from db
+    local_ep = 100  # FIXME: get from db
 
     print("\nExperimental details:")
     print(f"    Model     : {model}")
@@ -81,13 +81,13 @@ def train_center(global_round=1):
     num_channels = 1  # FIXME: get from db
     num_classes = 3  # FIXME: get from db
     num_users = 2  # FIXME: get from db
-    epochs = 2  # FIXME: get from db
+    epochs = 10  # FIXME: get from db
     use_gpu = False  # FIXME: get from db
     model = "cnn"  # FIXME: get from db
     dataset = "custom"  # FIXME: get from db
     frac = 0.1  # FIXME: get from db
-    local_ep = 1  # FIXME: get from db
-    local_bs = 10  # FIXME: get from db
+    local_ep = 100  # FIXME: get from db
+    local_bs = 32  # FIXME: get from db
 
     start_time = time.time()
 
