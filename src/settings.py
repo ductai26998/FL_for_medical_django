@@ -77,27 +77,14 @@ WSGI_APPLICATION = 'src.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": os.getenv("MYSQL_DATABASE", "p2n2pduce1e2dbew"),
-#         "USER": os.getenv("MYSQL_USER", "p7qcz759qs7r3zfd"),
-#         "PASSWORD": os.getenv("MYSQL_PASSWORD", "d6dm887ld0ra4yw3"),
-#         "HOST": os.getenv(
-#             "MYSQL_HOST", "nnsgluut5mye50or.cbetxkdyhwsb.us-east-1.rds.amazonaws.com"
-#         ),
-#         "PORT": os.getenv("MYSQL_PORT", "3306"),
-#     }
-# }
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("MYSQL_DATABASE", "wl05iil5goy6u6bs"),
-        "USER": os.getenv("MYSQL_USER", "fokiiyhc30531r2o"),
-        "PASSWORD": os.getenv("MYSQL_PASSWORD", "jmb9l9jklyorfj4d"),
+        "NAME": os.getenv("MYSQL_DATABASE", "vfxjks0pixluod2f"),
+        "USER": os.getenv("MYSQL_USER", "su7kkwak6lm1dtw1"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD", "wmc0698fdoagg8zw"),
         "HOST": os.getenv(
-            "MYSQL_HOST", "r98du2bxwqkq3shg.cbetxkdyhwsb.us-east-1.rds.amazonaws.com"
+            "MYSQL_HOST", "lcpbq9az4jklobvq.cbetxkdyhwsb.us-east-1.rds.amazonaws.com"
         ),
         "PORT": os.getenv("MYSQL_PORT", "3306"),
     }
