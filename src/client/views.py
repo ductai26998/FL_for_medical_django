@@ -1,14 +1,14 @@
 import requests
+from django.conf import settings
+from django.utils import timezone
 from rest_framework import status, views
 from rest_framework.response import Response
-from ..client_training.utils import train_client
 
 from .. import CENTER_API_URL
+from ..client_training.utils import train_client
 from . import ErrorCode
 from .serializers import (ClientReceivesParamsInputSerializer,
                           ClientSendsParamsInputSerializer)
-
-CLIENT_ID = 1
 
 
 class ClientSendsParams(views.APIView):
@@ -18,12 +18,12 @@ class ClientSendsParams(views.APIView):
         serializer = ClientSendsParamsInputSerializer(data=data)
         if serializer.is_valid():
             serializer.validated_data
-            ## STEP 7: Client sends params to center
-            print("STEP 7")
+            # STEP 7: Client sends params to center
+            print("STEP 7", timezone.now())
             global_round = data["global_round"]
             model_path = data["model_path"]
             res = requests.post(
-                CENTER_API_URL + "/center/params/receives", json={"client_id": CLIENT_ID, "global_round": global_round, "model_path": model_path}
+                CENTER_API_URL + "/center/params/receives", json={"client_id": settings.CLIENT_ID, "global_round": global_round, "model_path": model_path}
             )
             print("/center/params/receives", res.json())
             # FIXME: if send params fail -> resend
@@ -47,16 +47,16 @@ class ClientSendsParams(views.APIView):
 class ClientReceivesParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
-        ## STEP 4: Client received params from center
-        print("STEP 4")
+        # STEP 4: Client received params from center
+        print("STEP 4", timezone.now())
         data = request.data
         serializer = ClientReceivesParamsInputSerializer(data=data)
         if serializer.is_valid():
             serializer.validated_data
             global_round = data["global_round"]
             model_path = data["model_path"]
-            ## STEP 5: Client trains its model with above params
-            print("STEP 5")
+            # STEP 5: Client trains its model with above params
+            print("STEP 5", timezone.now())
             train_client(global_round, model_path)
             return Response(
                 {

@@ -1,10 +1,11 @@
 import requests
+from django.utils import timezone
 from rest_framework import status, views
 from rest_framework.response import Response
-from ..center_training.utils import train_center
 
 from .. import CLIENT_API_URL
 from ..center.models import CenterEvent
+from ..center_training.utils import train_center
 from ..client.models import Client
 from . import ErrorCode, EventType
 from .serializers import (CenterReceivesParamsInputSerializer,
@@ -23,10 +24,10 @@ class CenterSendsParams(views.APIView):
             for client_id in client_ids:
                 global_round = data["global_round"]
                 model_path = data["model_path"]
-                ## STEP 3: Center send params to clients
-                print("STEP 3")
+                # STEP 3: Center send params to clients
+                print("STEP 3", timezone.now())
                 CenterEvent.objects.create(event_type=EventType.CENTER_SENT_PARAMS,
-                                               client_id=client_id, global_round=global_round, model_path=model_path)
+                                           client_id=client_id, global_round=global_round, model_path=model_path)
                 res = requests.post(
                     CLIENT_API_URL + "/client/params/receives", json={"global_round": global_round, "model_path": model_path}
                 )
@@ -53,8 +54,8 @@ class CenterSendsParams(views.APIView):
 class CenterReceivesParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
-        ## STEP 8: Center receives params from client
-        print("STEP 8")
+        # STEP 8: Center receives params from client
+        print("STEP 8", timezone.now())
         data = request.data
         client_id = data["client_id"]
         serializer = CenterReceivesParamsInputSerializer(data=data)
@@ -82,7 +83,7 @@ class CenterReceivesParams(views.APIView):
                 )
             if len(event_clients) >= len(client_ids) - 1:
                 # STEP 9: Center calculate params
-                print("STEP 9")
+                print("STEP 9", timezone.now())
                 train_center(global_round + 1)
             CenterEvent.objects.create(
                 event_type=EventType.CENTER_RECEIVED_PARAMS, **data)

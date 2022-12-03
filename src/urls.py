@@ -17,9 +17,12 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path
 
-from .center.views import (CenterGetClientParams, CenterReceivesParams,
-                           CenterSendsParams)
-from .client.views import ClientReceivesParams, ClientSendsParams
+# from .center.views import (CenterGetClientParams, CenterReceivesParams,
+#                            CenterSendsParams)
+# from .client.views import ClientReceivesParams, ClientSendsParams
+from .device.views import (CenterGetClientParams, CenterReceivesParams,
+                           CenterSendsParams, ClientReceivesParams,
+                           ClientSendsParams)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

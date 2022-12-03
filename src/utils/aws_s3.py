@@ -34,7 +34,6 @@ def upload_params_to_s3(file, folder: str, file_name=None):
 
 
 def read_params_from_s3(object_name, bucket_name=settings.AWS_STORAGE_BUCKET_NAME):
-    print("xxxxx", object_name)
     s3 = _s3_initialize()
     file = s3.Bucket(bucket_name).Object(object_name).get()['Body'].read()
     params = pickle.loads(file)

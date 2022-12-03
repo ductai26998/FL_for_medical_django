@@ -10,15 +10,27 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
-from pathlib import Path
+import ast
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def get_number_from_env(name, default_value):
+    if name in os.environ:
+        value = os.environ[name]
+        try:
+            return ast.literal_eval(value)
+        except ValueError as e:
+            raise ValueError(
+                "{} is an invalid value for {}".format(value, name)) from e
+    return default_value
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-v8%3#z@mb@2202-0+_o9&(!rxq@s1@#9)axx7a+cx3x^)f3$kv'
@@ -149,6 +161,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # aws
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "AKIAYXJ7HLKL3LADNLFG")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "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")
+AWS_SECRET_ACCESS_KEY = os.getenv(
+    "AWS_SECRET_ACCESS_KEY", "F7T3XU5TXXPiJQL5Uw66FePEkZ8mCHzSUauuK1og")
 FOLDER = os.getenv("TRAIN", "dev_train")
-AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "fl-for-medical")
+AWS_STORAGE_BUCKET_NAME = os.getenv(
+    "AWS_STORAGE_BUCKET_NAME", "fl-for-medical")
+
+CLIENT_ID = get_number_from_env("CLIENT_ID", 2)

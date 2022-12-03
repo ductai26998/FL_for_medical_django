@@ -4,6 +4,11 @@ from django.utils import timezone
 # Create your models here.
 
 
+class DeviceManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
+
 class Device(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=64)
@@ -13,6 +18,8 @@ class Device(models.Model):
         max_length=512, null=True, blank=True)
     train_acc = models.FloatField(null=True, blank=True)
     train_loss = models.FloatField(null=True, blank=True)
+    train_acc_list = models.TextField(null=True, blank=True)
+    train_loss_list = models.TextField(null=True, blank=True)
     api_url = models.CharField(max_length=256)
     is_active = models.BooleanField(default=True)
 
@@ -25,9 +32,14 @@ class Device(models.Model):
     num_classes = models.IntegerField(null=True, blank=True)
     batch_size = models.IntegerField(null=True, blank=True)
 
+    objects = DeviceManager()
+
     class Meta:
         db_table = "device"
 
+class EventManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(device__is_active=True)
 
 class Event(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
@@ -40,6 +52,8 @@ class Event(models.Model):
     status = models.CharField(max_length=128, null=True, blank=True)
     train_acc = models.FloatField(null=True, blank=True)
     train_loss = models.FloatField(null=True, blank=True)
+
+    objects = EventManager()
 
     class Meta:
         db_table = "event"

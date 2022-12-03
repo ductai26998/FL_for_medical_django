@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import requests
 import torch
+from django.utils import timezone
 from tensorboardX import SummaryWriter
 
 from .. import CENTER_API_URL, ROOT_PATH
@@ -85,11 +86,11 @@ def train_center(global_round=1):
         global_model.train()
         if global_round == 1:
             # STEP 1: Center init params
-            print("STEP 1")
+            print("STEP 1", timezone.now())
             global_params = global_model.state_dict()
         else:
             # STEP 10: Center calculate params and retrain FL
-            print("STEP 10")
+            print("STEP 10", timezone.now())
             response = requests.get(
                 CENTER_API_URL + "/center/params", json={"global_round": global_round}
             )
@@ -106,7 +107,7 @@ def train_center(global_round=1):
         model_path = upload_params_to_s3(
             buffer.getvalue(), "center_params", "global_model_round_%s.pkl" % (global_round))
         # STEP 2: Center create event and send params to clients
-        print("STEP 2")
+        print("STEP 2", timezone.now())
         res = requests.post(
             CENTER_API_URL + "/center/params/sends", json={"global_round": global_round, "model_path": model_path}
         )

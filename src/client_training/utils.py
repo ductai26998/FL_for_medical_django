@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import requests
 import torch
+from django.utils import timezone
 from tensorboardX import SummaryWriter
 from torchvision import datasets, transforms
 
@@ -16,7 +17,8 @@ from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
 from .datasets import CustomDataset
 from .models import CNN, CNNOpt
 from .update import LocalUpdate, test_inference
-
+from ..device.models import Device
+from django.conf import settings
 
 def get_dataset():
     """Returns train and test datasets and a user group which is a dict where
@@ -126,13 +128,16 @@ def train_client(global_round, model_path):
     local_params, loss = local_update.update_weights(
         model=local_model, global_round=global_round
     )
+    client = Device.objects.get(id=settings.CLIENT_ID)
+    client.current_loss = loss
+    client.save(update_fields=["current_loss"])
     buffer = io.BytesIO()
     pickle.dump(local_params, buffer)
     model_path = upload_params_to_s3(
         buffer.getvalue(), "client_1_params", "local_model_round_%s.pkl" % (global_round))
     # TODO: update current_model_path of client on db
     # STEP 6: Client call api to sends params to center
-    print("STEP 6")
+    print("STEP 6", timezone.now())
     res = requests.post(
         CLIENT_API_URL + "/client/params/sends", json={"global_round": global_round, "model_path": model_path}
     )
