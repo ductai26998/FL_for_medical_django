@@ -20,6 +20,10 @@ class Device(models.Model):
     train_loss = models.FloatField(null=True, blank=True)
     train_acc_list = models.TextField(null=True, blank=True)
     train_loss_list = models.TextField(null=True, blank=True)
+    val_acc = models.FloatField(null=True, blank=True)
+    val_loss = models.FloatField(null=True, blank=True)
+    val_acc_list = models.TextField(null=True, blank=True)
+    val_loss_list = models.TextField(null=True, blank=True)
     api_url = models.CharField(max_length=256)
     is_active = models.BooleanField(default=True)
 

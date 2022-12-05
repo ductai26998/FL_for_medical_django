@@ -1,17 +1,20 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import requests
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import status, views
 from rest_framework.response import Response
 
-from ..center_training.utils import train_center
-from ..client_training.utils import train_client
+from ..train.utils import train_center, train_client
 from . import ErrorCode, EventType, Status
 from .models import Device, Event
-from .serializers import (CenterReceivesParamsInputSerializer,
-                          CenterSendsParamsInputSerializer,
-                          ClientReceivesParamsInputSerializer,
-                          ClientSendsParamsInputSerializer)
+from .serializers import (
+    CenterReceivesParamsInputSerializer,
+    CenterSendsParamsInputSerializer,
+    ClientReceivesParamsInputSerializer,
+    ClientSendsParamsInputSerializer,
+)
 
 
 class CenterSendsParams(views.APIView):
@@ -26,31 +29,31 @@ class CenterSendsParams(views.APIView):
             center = Device.objects.filter(is_center=True).first()
             center.current_model_path = model_path
             center.current_global_round = global_round
-            center.save(update_fields=[
-                        "current_global_round", "current_model_path"])
+            center.save(update_fields=["current_global_round", "current_model_path"])
             clients = Device.objects.filter(is_center=False)
-            for client in clients:
-                client.current_global_round = global_round
-                client.save(update_fields=["current_global_round"])
-                # STEP 3: Center send params to clients
-                print("STEP 3", timezone.now())
-                Event.objects.create(
-                    event_type=EventType.CENTER_SENT_PARAMS,
-                    device_id=client.id,
-                    global_round=global_round,
-                    model_path=model_path,
-                    status=Status.STARTED,
-                )
-                res = requests.post(
-                    client.api_url + "/client/params/receives", json={"global_round": global_round, "model_path": model_path}
-                )
-                print("/client/params/receives", res.json())
-                # if res.ok:
-                #     # FIXME: divide to fail case and success case with is_success field
+            # STEP 3: Center send params to clients
+            print("STEP 3", timezone.now())
+            with ThreadPoolExecutor(max_workers=200) as executor:
+                for client in clients:
+                    client.current_global_round = global_round
+                    client.save(update_fields=["current_global_round"])
+
+                    res = requests.post(
+                        client.api_url + "/client/params/receives",
+                        json={"global_round": global_round, "model_path": model_path},
+                    )
+                    print("/client/params/receives", res.json())
+            Event.objects.create(
+                event_type=EventType.CENTER_SENT_PARAMS,
+                device_id=client.id,
+                global_round=global_round,
+                model_path=model_path,
+                status=Status.STARTED,
+            )
+            # if res.ok:
+            #     # FIXME: divide to fail case and success case with is_success field
             return Response(
-                {
-                    "detail": "Sent params to clients successfully"
-                },
+                {"detail": "Sent params to clients successfully"},
                 status=status.HTTP_200_OK,
             )
 
@@ -75,11 +78,13 @@ class CenterReceivesParams(views.APIView):
         serializer = CenterReceivesParamsInputSerializer(data=data)
         if serializer.is_valid():
             serializer.validated_data
-            client_ids = Device.objects.filter(
-                is_center=False).values_list("id", flat=True)
+            client_ids = Device.objects.filter(is_center=False).values_list(
+                "id", flat=True
+            )
             global_round = data["global_round"]
             event_clients = Event.objects.filter(
-                event_type=EventType.CENTER_RECEIVED_PARAMS, global_round=global_round).values_list("device_id", flat=True)
+                event_type=EventType.CENTER_RECEIVED_PARAMS, global_round=global_round
+            ).values_list("device_id", flat=True)
             if client_id not in client_ids or len(event_clients) >= len(client_ids):
                 return Response(
                     {
@@ -101,7 +106,7 @@ class CenterReceivesParams(views.APIView):
                 event_type=EventType.CENTER_RECEIVED_PARAMS,
                 device_id=client_id,
                 global_round=global_round,
-                model_path=model_path
+                model_path=model_path,
             )
             if len(event_clients) >= len(client_ids) - 1:
                 # STEP 9: Center calculate params
@@ -139,36 +144,10 @@ class CenterGetClientParams(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         model_path_list = Device.objects.filter(
-            is_center=False, current_global_round=global_round).values_list("model_path", flat=True)
-        return Response(
-            {
-                "data": model_path_list
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class CenterGetClientParams(views.APIView):
-    @classmethod
-    def get(self, request, **kwargs):
-        data = request.data
-        global_round = data.get("global_round")
-        if not global_round:
-            return Response(
-                {
-                    "code": ErrorCode.REQUIRED,
-                    "detail": "global_round is required",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        model_path_list = Event.objects.filter(
-            event_type=EventType.CENTER_RECEIVED_PARAMS,
-            global_round=global_round
+            is_center=False, current_global_round=global_round
         ).values_list("model_path", flat=True)
         return Response(
-            {
-                "data": model_path_list
-            },
+            {"data": model_path_list},
             status=status.HTTP_200_OK,
         )
 
@@ -185,15 +164,18 @@ class ClientSendsParams(views.APIView):
             global_round = data["global_round"]
             model_path = data["model_path"]
             center = Device.objects.filter(is_center=True).first()
-            res = requests.post(
-                center.api_url + "/center/params/receives", json={"client_id": settings.CLIENT_ID, "global_round": global_round, "model_path": model_path}
-            )
-            print("/center/params/receives", res.json())
-            # FIXME: if send params fail -> resend
+            with ThreadPoolExecutor(max_workers=200) as executor:
+                res = requests.post(
+                    center.api_url + "/center/params/receives",
+                    json={
+                        "client_id": settings.CLIENT_ID,
+                        "global_round": global_round,
+                        "model_path": model_path,
+                    },
+                )
+                print("/center/params/receives", res.json())
             return Response(
-                {
-                    "detail": "Sent params to center successfully"
-                },
+                {"detail": "Sent params to center successfully"},
                 status=status.HTTP_200_OK,
             )
 
