@@ -31,6 +31,7 @@ def get_dataset():
     """
 
     img_path = "src/train/Dataset/Train/**/*.jpg"
+    
     breast_img = glob.glob(img_path, recursive=True)
 
     non_can_img = []
@@ -73,13 +74,13 @@ def get_dataset():
     non_img_arr = []
     can_img_arr = []
     print("Reading non_can_img")
-    for img in non_can_img[:10]:  # FIXME: remove [:100]
+    for img in non_can_img:  # FIXME: remove [:100]
         n_img = cv2.imread(img, cv2.IMREAD_COLOR)
         n_img_size = cv2.resize(n_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         non_img_arr.append([n_img_size, 0])
 
     print("Reading can_img")
-    for img in can_img[:10]:  # FIXME: remove [:100]
+    for img in can_img:  # FIXME: remove [:100]
         c_img = cv2.imread(img, cv2.IMREAD_COLOR)
         c_img_size = cv2.resize(c_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         can_img_arr.append([c_img_size, 1])

@@ -17,24 +17,25 @@ from .serializers import (
 )
 
 
+def send_params_to_client(client, global_round, model_path):
+    print("Send params to client %s with url %s" % (client.id, client.api_url))
+    Event.objects.create(
+        event_type=EventType.CENTER_SENT_PARAMS,
+        device_id=client.id,
+        global_round=global_round,
+        model_path=model_path,
+        status=EventStatus.STARTED,
+    )
+    res = requests.post(
+        client.api_url + "/client/params/receives",
+        json={"global_round": global_round, "model_path": model_path},
+    )
+    print("/client/params/receives", res.json())
+
+
 class CenterSendsParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
-        def send_params_to_client(client):
-            print("Send params to client %s with url %s" % (client.id, client.api_url))
-            Event.objects.create(
-                event_type=EventType.CENTER_SENT_PARAMS,
-                device_id=client.id,
-                global_round=global_round,
-                model_path=model_path,
-                status=EventStatus.STARTED,
-            )
-            res = requests.post(
-                client.api_url + "/client/params/receives",
-                json={"global_round": global_round, "model_path": model_path},
-            )
-            print("/client/params/receives", res.json())
-
         data = request.data
         serializer = CenterSendsParamsInputSerializer(data=data)
         if serializer.is_valid():
@@ -58,7 +59,9 @@ class CenterSendsParams(views.APIView):
 
             with ProcessPoolExecutor() as executor:
                 for client in clients:
-                    executor.submit(send_params_to_client, client)
+                    executor.submit(
+                        send_params_to_client, client, global_round, model_path
+                    )
 
             # if res.ok:
             #     # FIXME: divide to fail case and success case with is_success field
@@ -166,20 +169,21 @@ class CenterGetClientParams(views.APIView):
         )
 
 
+def send_params_to_center(center, global_round, model_path):
+    res = requests.post(
+        center.api_url + "/center/params/receives",
+        json={
+            "client_id": settings.CLIENT_ID,
+            "global_round": global_round,
+            "model_path": model_path,
+        },
+    )
+    print("/center/params/receives", res.json())
+
+
 class ClientSendsParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
-        def send_params_to_center(center):
-            res = requests.post(
-                center.api_url + "/center/params/receives",
-                json={
-                    "client_id": settings.CLIENT_ID,
-                    "global_round": global_round,
-                    "model_path": model_path,
-                },
-            )
-            print("/center/params/receives", res.json())
-
         data = request.data
         serializer = ClientSendsParamsInputSerializer(data=data)
         if serializer.is_valid():
@@ -190,7 +194,7 @@ class ClientSendsParams(views.APIView):
             model_path = data["model_path"]
             center = Device.objects.filter(is_center=True).first()
             with ProcessPoolExecutor() as executor:
-                executor.submit(send_params_to_center, center)
+                executor.submit(send_params_to_center, center, global_round, model_path)
             return Response(
                 {"detail": "Sent params to center successfully"},
                 status=status.HTTP_200_OK,
