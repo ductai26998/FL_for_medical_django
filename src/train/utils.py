@@ -73,13 +73,13 @@ def get_dataset():
     non_img_arr = []
     can_img_arr = []
     print("Reading non_can_img")
-    for img in non_can_img[:100]:  # FIXME: remove [:100]
+    for img in non_can_img[:10]:  # FIXME: remove [:100]
         n_img = cv2.imread(img, cv2.IMREAD_COLOR)
         n_img_size = cv2.resize(n_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         non_img_arr.append([n_img_size, 0])
 
     print("Reading can_img")
-    for img in can_img[:100]:  # FIXME: remove [:100]
+    for img in can_img[:10]:  # FIXME: remove [:100]
         c_img = cv2.imread(img, cv2.IMREAD_COLOR)
         c_img_size = cv2.resize(c_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         can_img_arr.append([c_img_size, 1])
@@ -210,6 +210,8 @@ def train_client(global_round, model_path):
             "current_global_round",
             "train_loss",
             "train_acc",
+            "val_acc",
+            "val_loss",
             "train_loss_list",
             "train_acc_list",
             "val_acc_list",
@@ -223,7 +225,7 @@ def train_client(global_round, model_path):
         client.api_url + "/client/params/sends",
         json={"global_round": global_round, "model_path": model_path},
     )
-    print("/center/params/receives", res.json())
+    print("/client/params/sends", res.json())
     print(
         f" \n Results after {local_ep} times of local training and {global_round} times global training:"
     )
@@ -238,7 +240,7 @@ def train_client(global_round, model_path):
     plt.title("Model Accuracy")
     plt.ylabel("accuracy")
     plt.xlabel("epoch")
-    plt.legend(["train", "test"], loc="upper left")
+    plt.legend(["train", "validation"], loc="upper left")
     plt.savefig("src/train/results/client/model_acc_global_round_%s.png" % global_round)
     plt.close()
 
@@ -248,7 +250,7 @@ def train_client(global_round, model_path):
     plt.title("Model Loss")
     plt.ylabel("loss")
     plt.xlabel("epoch")
-    plt.legend(["train", "test"], loc="upper left")
+    plt.legend(["train", "validation"], loc="upper left")
     plt.savefig(
         "src/train/results/client/model_loss_global_round_%s.png" % global_round
     )
@@ -306,7 +308,7 @@ def send_params_to_clients(center, global_round=None):
             center.api_url + "/center/params/sends",
             json={"global_round": global_round, "model_path": model_path},
         )
-        print("/center/params/sends", res)
+        print("/center/params/sends", res.json())
 
 
 def train_center(global_round):
@@ -318,17 +320,69 @@ def train_center(global_round):
     if global_round > 1:
         # Show train loss, train acc and save them to db of the global training before
         clients_result = Device.objects.filter(is_center=False).values_list(
-            "train_acc", "train_loss"
+            "train_acc", "train_loss", "val_acc", "val_loss"
         )
-        train_acc_list, train_loss_list = list(zip(*clients_result))
-        avg_train_acc = sum(train_acc_list) / len(train_acc_list)
-        avg_train_loss = sum(train_loss_list) / len(train_loss_list)
+        (
+            local_train_acc_list,
+            local_train_loss_list,
+            local_val_acc_list,
+            local_val_loss_list,
+        ) = list(zip(*clients_result))
+        avg_train_acc = sum(local_train_acc_list) / len(local_train_acc_list)
+        avg_train_loss = sum(local_train_loss_list) / len(local_train_loss_list)
+        avg_val_acc = sum(local_val_acc_list) / len(local_val_acc_list)
+        avg_val_loss = sum(local_val_loss_list) / len(local_val_loss_list)
         print(f" \nAvg Training Stats after {global_round - 1} global rounds:")
         print(f"Training Loss : {avg_train_loss}")
         print("Train Accuracy: %s \n" % avg_train_acc)
-        center.train_acc = avg_train_acc
-        center.train_loss = avg_train_loss
         center.current_global_round = global_round
-        center.save(update_fields=["train_acc", "train_loss", "current_global_round"])
+
+        train_acc_list, train_loss_list, val_acc_list, val_loss_list = [], [], [], []
+        # train acc
+        train_acc_list_str = center.train_acc_list
+        if train_acc_list_str:
+            train_acc_list = json.loads(train_acc_list_str)
+        train_acc_list.append(avg_train_acc)
+        train_acc_list_str = json.dumps(train_acc_list)
+        center.train_acc_list = train_acc_list_str
+        center.train_acc = avg_train_acc
+        # train loss
+        train_loss_list_str = center.train_loss_list
+        if train_loss_list_str:
+            train_loss_list = json.loads(train_loss_list_str)
+        train_loss_list.append(avg_train_loss)
+        train_loss_list_str = json.dumps(train_loss_list)
+        center.train_loss_list = train_loss_list_str
+        center.train_loss = avg_train_loss
+        # validation accuracy
+        val_acc_list_str = center.val_acc_list
+        if val_acc_list_str:
+            val_acc_list = json.loads(val_acc_list_str)
+        val_acc_list.append(avg_val_acc)
+        val_acc_list_str = json.dumps(val_acc_list)
+        center.val_acc_list = val_acc_list_str
+        center.val_acc = avg_val_acc
+        # validation loss
+        val_loss_list_str = center.val_loss_list
+        if val_loss_list_str:
+            val_loss_list = json.loads(val_loss_list_str)
+        val_loss_list.append(avg_val_loss)
+        val_loss_list_str = json.dumps(val_loss_list)
+        center.val_loss_list = val_loss_list_str
+        center.val_loss = avg_val_loss
+
+        center.save(
+            update_fields=[
+                "train_acc",
+                "train_loss",
+                "val_acc",
+                "val_loss",
+                "current_global_round",
+                "train_loss_list",
+                "train_acc_list",
+                "val_acc_list",
+                "val_loss_list",
+            ]
+        )
 
     send_params_to_clients(center, global_round)

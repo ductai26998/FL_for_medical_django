@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 
 import requests
 from django.conf import settings
@@ -7,7 +7,7 @@ from rest_framework import status, views
 from rest_framework.response import Response
 
 from ..train.utils import train_center, train_client
-from . import ErrorCode, EventType, EventStatus
+from . import ErrorCode, EventStatus, EventType
 from .models import Device, Event
 from .serializers import (
     CenterReceivesParamsInputSerializer,
@@ -20,6 +20,21 @@ from .serializers import (
 class CenterSendsParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
+        def send_params_to_client(client):
+            print("Send params to client %s with url %s" % (client.id, client.api_url))
+            Event.objects.create(
+                event_type=EventType.CENTER_SENT_PARAMS,
+                device_id=client.id,
+                global_round=global_round,
+                model_path=model_path,
+                status=EventStatus.STARTED,
+            )
+            res = requests.post(
+                client.api_url + "/client/params/receives",
+                json={"global_round": global_round, "model_path": model_path},
+            )
+            print("/client/params/receives", res.json())
+
         data = request.data
         serializer = CenterSendsParamsInputSerializer(data=data)
         if serializer.is_valid():
@@ -41,26 +56,10 @@ class CenterSendsParams(views.APIView):
             # STEP 3: Center send params to clients
             print("STEP 3", timezone.now())
 
-            with ThreadPoolExecutor(
-                max_workers=200
-            ) as executor:  # FIXME: fix each client is 1 thread
+            with ProcessPoolExecutor() as executor:
                 for client in clients:
-                    print(
-                        "Send params to client %s with url %s"
-                        % (client.id, client.api_url)
-                    )
-                    Event.objects.create(
-                        event_type=EventType.CENTER_SENT_PARAMS,
-                        device_id=client.id,
-                        global_round=global_round,
-                        model_path=model_path,
-                        status=EventStatus.STARTED,
-                    )
-                    res = requests.post(
-                        client.api_url + "/client/params/receives",
-                        json={"global_round": global_round, "model_path": model_path},
-                    )
-                    print("/client/params/receives", res.json())
+                    executor.submit(send_params_to_client, client)
+
             # if res.ok:
             #     # FIXME: divide to fail case and success case with is_success field
             print("Sent params to clients")
@@ -170,6 +169,17 @@ class CenterGetClientParams(views.APIView):
 class ClientSendsParams(views.APIView):
     @classmethod
     def post(self, request, **kwargs):
+        def send_params_to_center(center):
+            res = requests.post(
+                center.api_url + "/center/params/receives",
+                json={
+                    "client_id": settings.CLIENT_ID,
+                    "global_round": global_round,
+                    "model_path": model_path,
+                },
+            )
+            print("/center/params/receives", res.json())
+
         data = request.data
         serializer = ClientSendsParamsInputSerializer(data=data)
         if serializer.is_valid():
@@ -179,16 +189,8 @@ class ClientSendsParams(views.APIView):
             global_round = data["global_round"]
             model_path = data["model_path"]
             center = Device.objects.filter(is_center=True).first()
-            with ThreadPoolExecutor(max_workers=200) as executor:
-                res = requests.post(
-                    center.api_url + "/center/params/receives",
-                    json={
-                        "client_id": settings.CLIENT_ID,
-                        "global_round": global_round,
-                        "model_path": model_path,
-                    },
-                )
-                print("/center/params/receives", res.json())
+            with ProcessPoolExecutor() as executor:
+                executor.submit(send_params_to_center, center)
             return Response(
                 {"detail": "Sent params to center successfully"},
                 status=status.HTTP_200_OK,
