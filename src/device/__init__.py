@@ -14,7 +14,7 @@ class ErrorCode:
     REQUIRED = "required"
 
 
-class Status:
+class EventStatus:
     STARTED = "started"
     FAILED = "failed"
     COMPLETED = "completed"

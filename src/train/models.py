@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 
 
 class CNNModel:
-    def __init__(self) -> None:
+    def __init__(self, num_channels=3, num_classes=2) -> None:
+        self.num_channels = num_channels
+        self.num_classes = num_classes
         self.model = self.create()
 
     def create(self):
@@ -14,7 +16,7 @@ class CNNModel:
                     (3, 3),
                     padding="same",
                     activation="relu",
-                    input_shape=(50, 50, 3),
+                    input_shape=(50, 50, self.num_channels),
                 ),
                 tf.keras.layers.MaxPooling2D(strides=2),
                 tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation="relu"),
@@ -25,7 +27,7 @@ class CNNModel:
                 tf.keras.layers.MaxPooling2D((3, 3), strides=2),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(128, activation="relu"),
-                tf.keras.layers.Dense(2, activation="softmax"),
+                tf.keras.layers.Dense(self.num_classes, activation="softmax"),
             ]
         )
 
@@ -37,16 +39,19 @@ class CNNModel:
         )
         return model
 
-    def train(self, X_train, y_train, X_test, y_test):
+    def train(self, X_train, y_train, X_test, y_test, epochs, batch_size):
         history = self.model.fit(
             X_train,
             y_train,
             validation_data=(X_test, y_test),
-            epochs=100,
-            batch_size=75,
+            epochs=epochs,
+            batch_size=batch_size,
         )
         self.history = history
         return history.history
+
+    def save(self, path):
+        self.model.save(path)
 
     def save_history_visualization(self):
         if not self.history:
@@ -73,6 +78,6 @@ class CNNModel:
 
     def set_weights(self, weights):
         self.model.set_weights(weights)
-    
+
     def get_weights(self):
         return self.model.get_weights()

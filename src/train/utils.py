@@ -17,7 +17,6 @@ from django.utils import timezone
 from keras.utils.np_utils import to_categorical
 from sklearn.model_selection import train_test_split
 
-from .. import CENTER_API_URL, CLIENT_API_URL, ROOT_PATH
 from ..device.models import Device
 from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
 from .models import CNNModel
@@ -31,7 +30,7 @@ def get_dataset():
     each of those users.
     """
 
-    img_path = "Dataset/Train/**/*.jpg"
+    img_path = "src/train/Dataset/Train/**/*.jpg"
     breast_img = glob.glob(img_path, recursive=True)
 
     non_can_img = []
@@ -74,13 +73,13 @@ def get_dataset():
     non_img_arr = []
     can_img_arr = []
     print("Reading non_can_img")
-    for img in non_can_img:
+    for img in non_can_img[:100]:  # FIXME: remove [:100]
         n_img = cv2.imread(img, cv2.IMREAD_COLOR)
         n_img_size = cv2.resize(n_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         non_img_arr.append([n_img_size, 0])
 
     print("Reading can_img")
-    for img in can_img:
+    for img in can_img[:100]:  # FIXME: remove [:100]
         c_img = cv2.imread(img, cv2.IMREAD_COLOR)
         c_img_size = cv2.resize(c_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         can_img_arr.append([c_img_size, 1])
@@ -120,19 +119,22 @@ def average_params(weights_list):
     #         w_avg[key] += w[i][key]
     #     w_avg[key] = torch.div(w_avg[key], len(w))
 
-    w_avg = copy.deepcopy(weights_list[0])
+    w_avg = np.array(weights_list[0])
     for weights in weights_list:
-        w_avg += weights
-    return w_avg / len(weights_list)
+        w_avg += np.array(weights)
+    return list(w_avg / len(weights_list))
 
 
 def train_client(global_round, model_path):
-    num_channels = 1  # FIXME: get from db
-    num_classes = 3  # FIXME: get from db
-    use_gpu = False  # FIXME: get from db
-    model = "cnn"  # FIXME: get from db
-    local_ep = 1  # FIXME: get from db
-    local_bs = 10  # FIXME: get from db
+    client = Device.objects.get(id=settings.CLIENT_ID)
+    client.current_global_round = global_round
+    client.save(update_fields=["current_global_round"])
+
+    num_channels = client.num_channels
+    num_classes = client.num_classes
+    use_gpu = client.use_gpu
+    local_ep = client.epochs
+    local_bs = client.batch_size
 
     start_time = timezone.now()
 
@@ -143,14 +145,13 @@ def train_client(global_round, model_path):
     X_train, X_test, y_train, y_test = get_dataset()
 
     # BUILD MODEL
-    model = CNNModel()
+    model = CNNModel(num_channels=num_channels, num_classes=num_classes)
 
     # Set the model to train and send it to device.
     global_params = read_params_from_s3(model_path)
 
     # Training
-    train_loss_list, train_acc_list = [], []
-    client = Device.objects.get(id=settings.CLIENT_ID)
+    train_loss_list, train_acc_list, val_acc_list, val_loss_list = [], [], [], []
     train_loss_list_str = client.train_loss_list
     if train_loss_list_str:
         train_loss_list = json.loads(train_loss_list_str)
@@ -165,11 +166,8 @@ def train_client(global_round, model_path):
         val_loss_list = json.loads(val_loss_list_str)
 
     model.set_weights(global_params)
-    history = model.train(X_train, y_train, X_test, y_test)
-    # local_params, train_loss = local_update.update_weights(
-    #     model=local_model, global_round=global_round
-    # )
-    client = Device.objects.get(id=settings.CLIENT_ID)
+    history = model.train(X_train, y_train, X_test, y_test, local_ep, local_bs)
+
     # train loss
     train_loss = history["loss"]
     train_loss_list.extend(train_loss)
@@ -222,7 +220,7 @@ def train_client(global_round, model_path):
     # STEP 6: Client call api to sends params to center
     print("STEP 6", timezone.now())
     res = requests.post(
-        CLIENT_API_URL + "/client/params/sends",
+        client.api_url + "/client/params/sends",
         json={"global_round": global_round, "model_path": model_path},
     )
     print("/center/params/receives", res.json())
@@ -230,63 +228,53 @@ def train_client(global_round, model_path):
         f" \n Results after {local_ep} times of local training and {global_round} times global training:"
     )
     print("|---- Train Accuracy: {:.2f}%".format(100 * train_acc_list[-1]))
-    # print("|---- Test Accuracy: {:.2f}%".format(100 * test_acc))
+    print("|---- Validation Accuracy: {:.2f}%".format(100 * val_acc_list[-1]))
+    print("|---- Train Loss: {:.2f}%".format(100 * train_loss_list[-1]))
+    print("|---- Validation Loss: {:.2f}%".format(100 * val_loss_list[-1]))
 
+    # accuracy
     plt.plot(train_acc_list)
-    plt.plot(train_acc_list)  # FIXME: convert train_acc_list -> val_acc_list
+    plt.plot(val_acc_list)
     plt.title("Model Accuracy")
     plt.ylabel("accuracy")
     plt.xlabel("epoch")
     plt.legend(["train", "test"], loc="upper left")
-    plt.savefig("results_xray/model_acc_global_round_%s.png" % global_round)
+    plt.savefig("src/train/results/client/model_acc_global_round_%s.png" % global_round)
+    plt.close()
+
+    # loss
+    plt.plot(train_loss_list)
+    plt.plot(val_loss_list)
+    plt.title("Model Loss")
+    plt.ylabel("loss")
+    plt.xlabel("epoch")
+    plt.legend(["train", "test"], loc="upper left")
+    plt.savefig(
+        "src/train/results/client/model_loss_global_round_%s.png" % global_round
+    )
     plt.close()
 
     print("\n Total Run Time: %s" % (timezone.now() - start_time))
 
 
-def send_params_to_clients(global_round=None):
+def send_params_to_clients(center, global_round=None):
     if global_round is None:
-        center = Device.objects.get(is_center=True)
         global_round = center.current_global_round
 
-
-def train_center(global_round=None):
-    """
-    Params:
-    - global_round: min = 1
-    """
-    if global_round > 1:
-        # Show train loss, train acc and save them to db of the global training before
-        clients_result = Device.objects.filter(is_center=False).values_list(
-            "train_acc", "train_loss"
-        )
-        train_acc_list, train_loss_list = list(zip(*clients_result))
-        avg_train_acc = sum(train_acc_list) / len(train_acc_list)
-        avg_train_loss = sum(train_loss_list) / len(train_loss_list)
-        print(f" \nAvg Training Stats after {global_round - 1} global rounds:")
-        print(f"Training Loss : {avg_train_loss}")
-        print("Train Accuracy: %s \n" % avg_train_acc)
-        center = Device.objects.get(is_center=True)
-        center.train_acc = avg_train_acc
-        center.train_loss = avg_train_loss
-        center.save(update_fields=["train_acc", "train_loss"])
-
-    num_channels = 1  # FIXME: get from db
-    num_classes = 3  # FIXME: get from db
-    epochs = 2  # FIXME: get from db
-    use_gpu = False  # FIXME: get from db
-    model = "cnn"  # FIXME: get from db
+    num_channels = center.num_channels
+    num_classes = center.num_classes
+    epochs = center.epochs
+    use_gpu = center.use_gpu
 
     if not use_gpu:
         tf.config.set_visible_devices([], "GPU")  # run with cpu
 
     # BUILD MODEL
-    model = CNNModel()
+    model = CNNModel(num_channels=num_channels, num_classes=num_classes)
 
     # Training
     if global_round < epochs:
-        train_loss_list, train_acc_list = [], []
-        local_params_list, local_losses = [], []
+        local_params_list = []
         print(f"\n | Global Training Round : {global_round} |\n")
 
         if global_round == 1:
@@ -298,9 +286,10 @@ def train_center(global_round=None):
             print("STEP 10", timezone.now())
             model_path_list = Device.objects.filter(
                 is_center=False,
-                current_global_round=global_round,
+                current_global_round=global_round - 1,
                 current_model_path__isnull=False,
-            ).values_list("model_path", flat=True)
+            ).values_list("current_model_path", flat=True)
+            print("model_path_list", model_path_list)
             local_params_list = [read_params_from_s3(path) for path in model_path_list]
             global_params = average_params(local_params_list)
 
@@ -314,7 +303,32 @@ def train_center(global_round=None):
         # STEP 2: Center create event and send params to clients
         print("STEP 2", timezone.now())
         res = requests.post(
-            CENTER_API_URL + "/center/params/sends",
+            center.api_url + "/center/params/sends",
             json={"global_round": global_round, "model_path": model_path},
         )
         print("/center/params/sends", res)
+
+
+def train_center(global_round):
+    """
+    Params:
+    - global_round: min = 1
+    """
+    center = Device.objects.get(is_center=True)
+    if global_round > 1:
+        # Show train loss, train acc and save them to db of the global training before
+        clients_result = Device.objects.filter(is_center=False).values_list(
+            "train_acc", "train_loss"
+        )
+        train_acc_list, train_loss_list = list(zip(*clients_result))
+        avg_train_acc = sum(train_acc_list) / len(train_acc_list)
+        avg_train_loss = sum(train_loss_list) / len(train_loss_list)
+        print(f" \nAvg Training Stats after {global_round - 1} global rounds:")
+        print(f"Training Loss : {avg_train_loss}")
+        print("Train Accuracy: %s \n" % avg_train_acc)
+        center.train_acc = avg_train_acc
+        center.train_loss = avg_train_loss
+        center.current_global_round = global_round
+        center.save(update_fields=["train_acc", "train_loss", "current_global_round"])
+
+    send_params_to_clients(center, global_round)
