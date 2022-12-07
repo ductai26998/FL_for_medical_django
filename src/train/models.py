@@ -1,7 +1,7 @@
-import tensorflow as tf
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import cv2
+import tensorflow as tf
 
 
 class CNNModel:
@@ -91,6 +91,18 @@ class CNNModel:
             test_img_size = cv2.resize(
                 test_img, (50, 50), interpolation=cv2.INTER_LINEAR
             )
+            test_images.append(test_img_size)
+        test_images = np.array(test_images)
+        pred_list = self.model.predict(test_images)
+        res = [i.argmax() for i in pred_list]
+        return res
+
+    def predict_files(self, files):
+        test_images = []
+        for file in files:
+            np_arr = np.fromstring(file.file.read(), np.uint8)
+            img_np = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+            test_img_size = cv2.resize(img_np, (50, 50), interpolation=cv2.INTER_LINEAR)
             test_images.append(test_img_size)
         test_images = np.array(test_images)
         pred_list = self.model.predict(test_images)

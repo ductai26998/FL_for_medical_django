@@ -17,23 +17,36 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path
 
-# from .center.views import (CenterGetClientParams, CenterReceivesParams,
-#                            CenterSendsParams)
-# from .client.views import ClientReceivesParams, ClientSendsParams
-from .device.views import (CenterGetClientParams, CenterReceivesParams,
-                           CenterSendsParams, ClientReceivesParams,
-                           ClientSendsParams)
+from .device.views import (
+    CenterGetClientParams,
+    CenterPredict,
+    CenterReceivesParams,
+    CenterSendsParams,
+    ClientPredict,
+    ClientReceivesParams,
+    ClientSendsParams,
+)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    url("center/params/sends", CenterSendsParams.as_view(),
-        name="center_sends_params"),
-    url("center/params/receives", CenterReceivesParams.as_view(),
-        name="center_receives_params"),
-    url("center/get-client-params", CenterGetClientParams.as_view(), name="center_get_params"),
+    path("admin/", admin.site.urls),
+    url("center/params/sends", CenterSendsParams.as_view(), name="center_sends_params"),
+    url(
+        "center/params/receives",
+        CenterReceivesParams.as_view(),
+        name="center_receives_params",
+    ),
+    url(
+        "center/get-client-params",
+        CenterGetClientParams.as_view(),
+        name="center_get_params",
+    ),
     # FIXME: move client urls to client device
-    url("client/params/sends", ClientSendsParams.as_view(),
-        name="client_sends_params"),
-    url("client/params/receives", ClientReceivesParams.as_view(),
-        name="client_receives_params"),
+    url("client/params/sends", ClientSendsParams.as_view(), name="client_sends_params"),
+    url(
+        "client/params/receives",
+        ClientReceivesParams.as_view(),
+        name="client_receives_params",
+    ),
+    url("center/predict", CenterPredict.as_view(), name="center-predict"),
+    url("client/predict", ClientPredict.as_view(), name="client-predict"),
 ]

@@ -6,7 +6,9 @@ from django.utils import timezone
 from rest_framework import status, views
 from rest_framework.response import Response
 
+from ..train.models import CNNModel
 from ..train.utils import train_center, train_client
+from ..utils.aws_s3 import read_params_from_s3
 from . import ErrorCode, EventStatus, EventType
 from .models import Device, Event
 from .serializers import (
@@ -14,6 +16,7 @@ from .serializers import (
     CenterSendsParamsInputSerializer,
     ClientReceivesParamsInputSerializer,
     ClientSendsParamsInputSerializer,
+    PredictInputSerializer,
 )
 
 
@@ -242,6 +245,68 @@ class ClientReceivesParams(views.APIView):
             {
                 "code": ErrorCode.PROCESSING_ERROR,
                 "detail": "Can not receive params from center",
+                "messages": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class CenterPredict(views.APIView):
+    @classmethod
+    def post(self, request, **kwargs):
+        data = request.data
+        serializer = PredictInputSerializer(data=data)
+        if serializer.is_valid():
+            serializer.validated_data
+            images = request.FILES.getlist("images")
+            center = Device.objects.get(is_center=True)
+            model_path = center.current_model_path
+            params = read_params_from_s3(model_path)
+            model = CNNModel(
+                num_channels=center.num_channels, num_classes=center.num_classes
+            )
+            model.set_weights(params)
+            res = model.predict_files(images)
+            return Response(
+                {"detail": "Success", "data": res},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                "code": ErrorCode.PROCESSING_ERROR,
+                "detail": "Can not predict",
+                "messages": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class ClientPredict(views.APIView):
+    @classmethod
+    def post(self, request, **kwargs):
+        data = request.data
+        serializer = PredictInputSerializer(data=data)
+        if serializer.is_valid():
+            serializer.validated_data
+            images = request.FILES.getlist("images")
+            client = Device.objects.get(id=settings.CLIENT_ID)
+            model_path = client.current_model_path
+            params = read_params_from_s3(model_path)
+            model = CNNModel(
+                num_channels=client.num_channels, num_classes=client.num_classes
+            )
+            model.set_weights(params)
+            res = model.predict_files(images)
+            return Response(
+                {"detail": "Success", "data": res},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                "code": ErrorCode.PROCESSING_ERROR,
+                "detail": "Can not predict",
                 "messages": serializer.errors,
             },
             status=status.HTTP_400_BAD_REQUEST,

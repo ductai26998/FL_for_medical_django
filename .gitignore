@@ -6,3 +6,4 @@ logs/
 .env
 Dataset
 breast_cancer_images_2
+breast_cancer_images
