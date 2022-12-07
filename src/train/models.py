@@ -1,5 +1,7 @@
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import numpy as np
+import cv2
 
 
 class CNNModel:
@@ -81,3 +83,16 @@ class CNNModel:
 
     def get_weights(self):
         return self.model.get_weights()
+
+    def predict(self, test_images_paths):
+        test_images = []
+        for img_path in test_images_paths:
+            test_img = cv2.imread(img_path, cv2.IMREAD_COLOR)
+            test_img_size = cv2.resize(
+                test_img, (50, 50), interpolation=cv2.INTER_LINEAR
+            )
+            test_images.append(test_img_size)
+        test_images = np.array(test_images)
+        pred_list = self.model.predict(test_images)
+        res = [i.argmax() for i in pred_list]
+        return res
