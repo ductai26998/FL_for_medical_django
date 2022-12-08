@@ -74,13 +74,13 @@ def get_dataset():
     non_img_arr = []
     can_img_arr = []
     print("Reading non_can_img")
-    for img in non_can_img:  # FIXME: remove [:100]
+    for img in non_can_img:
         n_img = cv2.imread(img, cv2.IMREAD_COLOR)
         n_img_size = cv2.resize(n_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         non_img_arr.append([n_img_size, 0])
 
     print("Reading can_img")
-    for img in can_img:  # FIXME: remove [:100]
+    for img in can_img:
         c_img = cv2.imread(img, cv2.IMREAD_COLOR)
         c_img_size = cv2.resize(c_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         can_img_arr.append([c_img_size, 1])
@@ -233,8 +233,8 @@ def train_client(global_round, model_path):
     )
     print("|---- Train Accuracy: {:.2f}%".format(100 * train_acc_list[-1]))
     print("|---- Validation Accuracy: {:.2f}%".format(100 * val_acc_list[-1]))
-    print("|---- Train Loss: {:.2f}%".format(100 * train_loss_list[-1]))
-    print("|---- Validation Loss: {:.2f}%".format(100 * val_loss_list[-1]))
+    print("|---- Train Loss: {:.2f}".format(train_loss_list[-1]))
+    print("|---- Validation Loss: {:.2f}".format(val_loss_list[-1]))
 
     # accuracy
     plt.plot(train_acc_list)
