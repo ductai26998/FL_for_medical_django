@@ -189,6 +189,7 @@ def train_client(global_round, model_path):
     client.val_acc_list = val_acc_list_str
     # validation loss
     val_loss = history["val_loss"]
+    print("xxxxxxxxxxxxxxxxxxxxxx", val_loss)
     val_loss_list.extend(val_loss)
     client.val_loss = val_loss[-1]
     val_loss_list_str = json.dumps(val_loss_list)
@@ -276,7 +277,7 @@ def send_params_to_clients(center, global_round=None):
     model = CNNModel(num_channels=num_channels, num_classes=num_classes)
 
     # Training
-    if global_round < epochs:
+    if global_round <= epochs:
         local_params_list = []
         print(f"\n | Global Training Round : {global_round} |\n")
 
