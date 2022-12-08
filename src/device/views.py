@@ -65,14 +65,12 @@ class CenterSendsParams(views.APIView):
                     executor.submit(
                         send_params_to_client, client, global_round, model_path
                     )
-
-            # if res.ok:
-            #     # FIXME: divide to fail case and success case with is_success field
-            print("Sent params to clients")
-            return Response(
-                {"detail": "Sent params to clients successfully"},
-                status=status.HTTP_200_OK,
-            )
+                print("Sent params to clients")
+                return Response(
+                    {"detail": "Sent params to clients successfully"},
+                    status=status.HTTP_200_OK,
+                )
+            # FIXME: divide to fail case and success case with is_success field
 
         return Response(
             {
@@ -198,10 +196,10 @@ class ClientSendsParams(views.APIView):
             center = Device.objects.filter(is_center=True).first()
             with ProcessPoolExecutor() as executor:
                 executor.submit(send_params_to_center, center, global_round, model_path)
-            return Response(
-                {"detail": "Sent params to center successfully"},
-                status=status.HTTP_200_OK,
-            )
+                return Response(
+                    {"detail": "Sent params to center successfully"},
+                    status=status.HTTP_200_OK,
+                )
 
         return Response(
             {
