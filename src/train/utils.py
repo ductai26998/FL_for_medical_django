@@ -31,7 +31,7 @@ def get_dataset():
     """
 
     img_path = "src/train/Dataset/Train/**/*.jpg"
-    
+
     breast_img = glob.glob(img_path, recursive=True)
 
     non_can_img = []
@@ -73,14 +73,14 @@ def get_dataset():
 
     non_img_arr = []
     can_img_arr = []
-    print("Reading non_can_img")
-    for img in non_can_img:
+    print("----- Reading non_can_img")
+    for img in non_can_img[:5]:  # FIXME: remove [:100]
         n_img = cv2.imread(img, cv2.IMREAD_COLOR)
         n_img_size = cv2.resize(n_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         non_img_arr.append([n_img_size, 0])
 
-    print("Reading can_img")
-    for img in can_img:
+    print("----- Reading can_img")
+    for img in can_img[:5]:  # FIXME: remove [:100]
         c_img = cv2.imread(img, cv2.IMREAD_COLOR)
         c_img_size = cv2.resize(c_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         can_img_arr.append([c_img_size, 1])
@@ -98,7 +98,7 @@ def get_dataset():
     X = np.array(X)
     y = np.array(y)
 
-    print("X shape : {}".format(X.shape))
+    print("----- X shape : {}".format(X.shape))
 
     ####
     X_train, X_test, y_train, y_test = train_test_split(
@@ -114,11 +114,6 @@ def average_params(weights_list):
     """
     Returns the average of the params.
     """
-    # w_avg = copy.deepcopy(w[0])
-    # for key in w_avg.keys():
-    #     for i in range(1, len(w)):
-    #         w_avg[key] += w[i][key]
-    #     w_avg[key] = torch.div(w_avg[key], len(w))
 
     w_avg = np.array(weights_list[0])
     for weights in weights_list:
@@ -189,7 +184,6 @@ def train_client(global_round, model_path):
     client.val_acc_list = val_acc_list_str
     # validation loss
     val_loss = history["val_loss"]
-    print("xxxxxxxxxxxxxxxxxxxxxx", val_loss)
     val_loss_list.extend(val_loss)
     client.val_loss = val_loss[-1]
     val_loss_list_str = json.dumps(val_loss_list)
@@ -223,18 +217,17 @@ def train_client(global_round, model_path):
 
     # STEP 6: Client call api to sends params to center
     print("STEP 6", timezone.now())
-    res = requests.post(
+    requests.post(
         client.api_url + "/client/params/sends",
         json={"global_round": global_round, "model_path": model_path},
     )
-    print("/client/params/sends", res.json())
     print(
         f" \n Results after {local_ep} times of local training and {global_round} times global training:"
     )
-    print("|---- Train Accuracy: {:.2f}%".format(100 * train_acc_list[-1]))
-    print("|---- Validation Accuracy: {:.2f}%".format(100 * val_acc_list[-1]))
-    print("|---- Train Loss: {:.2f}".format(train_loss_list[-1]))
-    print("|---- Validation Loss: {:.2f}".format(val_loss_list[-1]))
+    print("---- Train Accuracy: {:.2f}%".format(100 * train_acc_list[-1]))
+    print("---- Validation Accuracy: {:.2f}%".format(100 * val_acc_list[-1]))
+    print("---- Train Loss: {:.2f}".format(train_loss_list[-1]))
+    print("---- Validation Loss: {:.2f}".format(val_loss_list[-1]))
 
     # accuracy
     plt.plot(train_acc_list)
@@ -279,7 +272,7 @@ def send_params_to_clients(center, global_round=None):
     # Training
     if global_round <= epochs:
         local_params_list = []
-        print(f"\n | Global Training Round : {global_round} |\n")
+        print(f"\n ----- Global Training Round : {global_round} |\n")
 
         if global_round == 1:
             # STEP 1: Center init params
@@ -293,7 +286,6 @@ def send_params_to_clients(center, global_round=None):
                 current_global_round=global_round - 1,
                 current_model_path__isnull=False,
             ).values_list("current_model_path", flat=True)
-            print("model_path_list", model_path_list)
             local_params_list = [read_params_from_s3(path) for path in model_path_list]
             global_params = average_params(local_params_list)
 
@@ -306,11 +298,10 @@ def send_params_to_clients(center, global_round=None):
         )
         # STEP 2: Center create event and send params to clients
         print("STEP 2", timezone.now())
-        res = requests.post(
+        requests.post(
             center.api_url + "/center/params/sends",
             json={"global_round": global_round, "model_path": model_path},
         )
-        print("/center/params/sends", res.json())
 
 
 def train_center(global_round):
@@ -335,8 +326,8 @@ def train_center(global_round):
         avg_val_acc = sum(local_val_acc_list) / len(local_val_acc_list)
         avg_val_loss = sum(local_val_loss_list) / len(local_val_loss_list)
         print(f" \nAvg Training Stats after {global_round - 1} global rounds:")
-        print(f"Training Loss : {avg_train_loss}")
-        print("Train Accuracy: %s \n" % avg_train_acc)
+        print(f"----- Training Loss : {avg_train_loss}")
+        print("---- Train Accuracy: {:.2f}% \n".format(100 * avg_train_acc))
         center.current_global_round = global_round
 
         train_acc_list, train_loss_list, val_acc_list, val_loss_list = [], [], [], []

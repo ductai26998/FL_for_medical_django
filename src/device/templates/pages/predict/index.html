@@ -6,9 +6,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script src="{% static 'fontawesomefree/js/fontawesome.js' %}"></script>
-    <script src="{% static 'fontawesomefree/js/solid.js' %}"></script>
-    <script src="{% static 'fontawesomefree/js/brands.js' %}"></script>
+    <link href="{% static 'fontawesomefree/css/fontawesome.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'fontawesomefree/css/brands.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'fontawesomefree/css/solid.css' %}" rel="stylesheet" type="text/css">
     <title>Chẩn đoán ung thu vú</title>
     <link rel="shortcut icon" href="{% static 'favicon.png' %}">
     <style>
@@ -39,11 +39,50 @@
         height: 100%;
         width: 100%;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         border-radius: 10px;
         border: dashed 1px #fff;
         background-color: #4caf50;
+      }
+      .custom-file-upload {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+      }
+      .upload-area-layer i {
+        color: #fff;
+        justify-content: center;
+        /* margin-bottom: 20px; */
+      }
+      input[type="file"] {
+        display: none;
+      }
+      .upload-text {
+        color: #fff;
+        margin-bottom: 0;
+      }
+      .btn-start {
+        margin: 20px;
+        background-color: #00be4d;
+        color: #fff;
+        padding: 10px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .container-result {
+        display: flex;
+      }
+      .table-result {
+        display: inline-flex;
+        width: 100%;
+      }
+      tr {
+        width: 100%;
       }
     </style>
   </head>
@@ -57,12 +96,15 @@
         <div class="container-upload">
           <div class="upload-area">
             <div class="upload-area-layer">
-              <i class="fa-solid fa-cloud-arrow-up fa-2xl"></i>
-              <input type="file" accept="image/*" multiple onchange="preview(event)" />
+              <label class="custom-file-upload">
+                <input type="file" accept="image/*" multiple onchange="preview(event)" />
+                <i class="fa-solid fa-cloud-arrow-up fa-2xl"></i>
+                <p class="upload-text">Tải hình ảnh</p>
+              </label>
             </div>
           </div>
           <div>
-            <button onclick="predict()">Bắt đầu</button>
+            <button class="btn-start" onclick="predict()">Bắt đầu</button>
           </div>
         </div>
         <div class="container-result">

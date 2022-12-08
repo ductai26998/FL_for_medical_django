@@ -17,7 +17,6 @@ class Command(BaseCommand):
         clients_result = Device.objects.filter(is_center=False).values_list(
             "train_acc", "train_loss", "val_acc", "val_loss"
         )
-        print("clients_result:", clients_result)
         if clients_result:
             (
                 local_train_acc_list,
@@ -83,12 +82,11 @@ class Command(BaseCommand):
             end_time = timezone.now()
             print("\n Total Run Time: %s" % (end_time - start_time))
             print(f" \n Results after {center.epochs} global rounds of training:")
-            print("|---- Train Accuracy: {:.2f}%".format(100 * avg_train_acc))
-            print("|---- Train Loss: {:.2f}%".format(100 * avg_train_loss))
+            print("----- Train Accuracy: {:.2f}%".format(100 * avg_train_acc))
+            print("----- Train Loss: {:.2f}".format(avg_train_loss))
 
             time_str = end_time.strftime("%d-%m-%Y_%H-%M-%S")
             # accuracy
-            print("train_acc_list", train_acc_list)
             plt.plot(train_acc_list)
             plt.plot(val_acc_list)
             plt.title("Model Accuracy")

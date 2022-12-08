@@ -1,4 +1,5 @@
-import pandas as pd
+#  This file to extract data to classification folder to train
+
 from imutils import paths
 import csv
 
@@ -6,29 +7,6 @@ import csv
 def main():
     create_annotations(dataset_type="train")
     create_annotations(dataset_type="test")
-
-
-#     parent_dir = "train/breast_cancer_images"
-#     image_dir = f"{parent_dir}/jpeg"
-#     dicom_data = pd.read_csv(f"{parent_dir}/csv/dicom_info.csv")
-#     # cropped images
-#     cropped_images = dicom_data[
-#         dicom_data.SeriesDescription == "cropped images"
-#     ].image_path
-#     cropped_images = cropped_images.apply(
-#         lambda x: x.replace("CBIS-DDSM/jpeg", image_dir)
-#     )
-#     # for file in cropped_images[0:10000]:
-#     #     if file[-9] not in ["1","2"]:
-#     #         print(file)
-#     # full mammogram images
-#     full_mammogram_images = dicom_data[
-#         dicom_data.SeriesDescription == "full mammogram images"
-#     ].image_path
-#     full_mammogram_images = full_mammogram_images.apply(
-#         lambda x: x.replace("CBIS-DDSM/jpeg", image_dir)
-#     )
-#     images = list(cropped_images) + list(full_mammogram_images)
 
 
 def write_to_csv(path: str, rows: list):

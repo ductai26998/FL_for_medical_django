@@ -33,7 +33,10 @@ class CNNModel:
             ]
         )
 
-        # print(model.summary())
+        print("------------------------------------")
+        print("----- Details about current model:")
+        print(model.summary())
+        print("------------------------------------")
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
             loss="binary_crossentropy",

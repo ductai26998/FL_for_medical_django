@@ -21,7 +21,7 @@ from .serializers import (
 
 
 def send_params_to_client(client, global_round, model_path):
-    print("Send params to client %s with url %s" % (client.id, client.api_url))
+    print("-----Send params to client %s with url %s" % (client.id, client.api_url))
     Event.objects.create(
         event_type=EventType.CENTER_SENT_PARAMS,
         device_id=client.id,
@@ -29,11 +29,10 @@ def send_params_to_client(client, global_round, model_path):
         model_path=model_path,
         status=EventStatus.STARTED,
     )
-    res = requests.post(
+    requests.post(
         client.api_url + "/client/params/receives",
         json={"global_round": global_round, "model_path": model_path},
     )
-    print("/client/params/receives", res.json())
 
 
 class CenterSendsParams(views.APIView):
@@ -65,7 +64,7 @@ class CenterSendsParams(views.APIView):
                     executor.submit(
                         send_params_to_client, client, global_round, model_path
                     )
-                print("Sent params to clients")
+                print("-----Sent params to clients")
                 return Response(
                     {"detail": "Sent params to clients successfully"},
                     status=status.HTTP_200_OK,
@@ -89,7 +88,6 @@ class CenterReceivesParams(views.APIView):
         print("STEP 8", timezone.now())
         data = request.data
         client_id = data["client_id"]
-        print("client_id", client_id)
         serializer = CenterReceivesParamsInputSerializer(data=data)
         if serializer.is_valid():
             serializer.validated_data
@@ -171,7 +169,7 @@ class CenterGetClientParams(views.APIView):
 
 
 def send_params_to_center(center, global_round, model_path):
-    res = requests.post(
+    requests.post(
         center.api_url + "/center/params/receives",
         json={
             "client_id": settings.CLIENT_ID,
@@ -179,7 +177,6 @@ def send_params_to_center(center, global_round, model_path):
             "model_path": model_path,
         },
     )
-    print("/center/params/receives", res.json())
 
 
 class ClientSendsParams(views.APIView):
