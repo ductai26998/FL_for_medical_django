@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <title>Chẩn đoán ung thu vú</title>
+    <style>
+      .container * {
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="container-header">
+        <h1>Chẩn đoán hình ảnh ung thư vú online</h1>
+        <h4>Vui lòng tải lên hình ảnh X Quang của bạn vào bên dưới và bấm [bắt đầu] để kiểm tra</h4>
+      </div>
+      <div class="container-main">
+        <div class="container-upload">
+          <input type="file" accept="image/*" multiple onchange="preview(event)" />
+          <button onclick="predict()">Bắt đầu</button>
+        </div>
+        <div class="container-result">
+          <table id="table-result">
+              <tr>
+                <th>Hình ảnh</th>
+                <th>Kết quả</th>
+              </tr>
+            <div id="img-preview"></div>
+          </table>
+        </div>
+      </div>
+      <div class="container-footer"></div>
+    </div>
+
+    <script>
+      var images = []
+      var preview = function (event) {
+        newImages = event.target.files
+        newImages = Array.from(newImages)
+        // previewArea.src = URL.createObjectURL(newImages[0])
+        // previewArea.onload = function () {
+        //   URL.revokeObjectURL(previewArea.src)
+        // }
+        var tbody = document.getElementById('table-result').tBodies[0]
+        tbody.innerHTML = `
+        <tr>
+          <th>Hình ảnh</th>
+          <th>Kết quả</th>
+        </tr>
+        `
+        for (let i in newImages) {
+          images.push(newImages[i])
+        }
+
+        for (let i in images) {
+          // append a row into table
+          var tr = document.createElement('tr')
+          var td1 = document.createElement('td')
+          td1.innerHTML = `<img id="img-preview-${i}" src="${URL.createObjectURL(images[i])}" />`
+          tr.appendChild(td1)
+          var td2 = document.createElement('td')
+          td2.id = `result-${i}`
+          tr.appendChild(td2)
+          tbody.appendChild(tr)
+        }
+      }
+      var predict = function () {
+        var bodyFormData = new FormData()
+        for (let image of images) {
+          bodyFormData.append('images', image)
+        }
+        axios({
+          method: 'post',
+          url: 'http://localhost:8000/center/predict',
+          data: bodyFormData,
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+          .then(function (response) {
+            console.log(response)
+            predictResults = response.data.data
+            for (let i in predictResults) {
+              if (predictResults[i] == 1) {
+                predictResults[i] = 'Khả năng cao'
+              } else if (predictResults[i] == 0) {
+                predictResults[i] = 'Khả năng thấp'
+              }
+              result_area = document.getElementById(`result-${i}`)
+              result_area.innerHTML = `<p>${predictResults[i]}</p>`
+            }
+          })
+          .catch(function (response) {
+            //handle error
+            console.log(response)
+          })
+      }
+    </script>
+  </body>
+</html>

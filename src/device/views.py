@@ -250,8 +250,12 @@ class ClientReceivesParams(views.APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-
+from django.shortcuts import render
 class CenterPredict(views.APIView):
+    @classmethod
+    def get(self, request, **kwargs):
+        return render(request, "pages/predict/index.html")
+
     @classmethod
     def post(self, request, **kwargs):
         data = request.data
