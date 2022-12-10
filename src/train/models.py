@@ -29,7 +29,7 @@ class CNNModel:
                 tf.keras.layers.MaxPooling2D((3, 3), strides=2),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(128, activation="relu"),
-                tf.keras.layers.Dense(self.num_classes, activation="softmax"),
+                tf.keras.layers.Dense(1, activation="softmax"),
             ]
         )
 
@@ -45,8 +45,8 @@ class CNNModel:
         return model
 
     def train(self, train_it, val_it, epochs, batch_size):
-        train_it_steps = round(train_it.samples / batch_size)
-        validation_steps = round(val_it.samples / batch_size)
+        train_it_steps = train_it.samples // batch_size
+        validation_steps = val_it.samples // batch_size
         history = self.model.fit_generator(
             train_it,
             steps_per_epoch=train_it_steps,
