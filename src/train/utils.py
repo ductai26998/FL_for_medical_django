@@ -20,9 +20,25 @@ from sklearn.model_selection import train_test_split
 from ..device.models import Device
 from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
 from .models import CNNModel
+from keras.preprocessing.image import ImageDataGenerator
 
 # from os import listdir
 
+def get_dataset_with_batch_size():
+    # create generator
+    datagen = ImageDataGenerator(
+            rescale=1./255,
+            shear_range=0.2,
+            zoom_range=0.2,
+            horizontal_flip=True)
+    # prepare an iterators for each dataset
+    train_it = datagen.flow_from_directory('src/train/data/train/', class_mode='binary', target_size=(50, 50), batch_size=64, )
+    val_it = datagen.flow_from_directory('src/train/data/validation/', class_mode='binary', target_size=(50, 50), batch_size=64, )
+    test_it = datagen.flow_from_directory('src/train/data/test/', class_mode='binary', target_size=(50, 50), batch_size=64, )
+    # confirm the iterator works
+    batchX, batchy = train_it.next()
+    print('Batch shape=%s, min=%.3f, max=%.3f' % (batchX.shape, batchX.min(), batchX.max()))
+    return train_it, val_it, test_it
 
 def get_dataset():
     """Returns train and test datasets and a user group which is a dict where
@@ -74,13 +90,13 @@ def get_dataset():
     non_img_arr = []
     can_img_arr = []
     print("----- Reading non_can_img")
-    for img in non_can_img[:5]:  # FIXME: remove [:100]
+    for img in non_can_img:  # FIXME: remove [:100]
         n_img = cv2.imread(img, cv2.IMREAD_COLOR)
         n_img_size = cv2.resize(n_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         non_img_arr.append([n_img_size, 0])
 
     print("----- Reading can_img")
-    for img in can_img[:5]:  # FIXME: remove [:100]
+    for img in can_img:  # FIXME: remove [:100]
         c_img = cv2.imread(img, cv2.IMREAD_COLOR)
         c_img_size = cv2.resize(c_img, (50, 50), interpolation=cv2.INTER_LINEAR)
         can_img_arr.append([c_img_size, 1])
