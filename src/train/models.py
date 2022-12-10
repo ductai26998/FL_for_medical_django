@@ -111,7 +111,9 @@ class CNNModel:
             test_images.append(test_img_size)
         test_images = np.array(test_images)
         pred_list = self.model.predict(test_images)
-        res = [i.argmax() for i in pred_list]
+        print(pred_list)
+        res = [i[0] for i in pred_list]
+        print(res)
         return res
 
     def evaluate(self, test_it, batch_size):

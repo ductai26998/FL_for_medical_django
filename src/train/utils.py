@@ -33,30 +33,25 @@ def get_dataset_with_batch_size(batch_size):
     )
     # prepare an iterators for each dataset
     train_it = datagen.flow_from_directory(
-        "src/train/data/train/",
+        "src/train/Dataset/Train/",
         class_mode="binary",
         target_size=(50, 50),
         batch_size=batch_size,
     )
     val_it = datagen.flow_from_directory(
-        "src/train/data/validation/",
+        "src/train/Dataset/Test/",
         class_mode="binary",
         target_size=(50, 50),
         batch_size=batch_size,
     )
-    test_it = datagen.flow_from_directory(
-        "src/train/data/test/",
-        class_mode="binary",
-        target_size=(50, 50),
-        batch_size=batch_size,
-    )
+
     # confirm the iterator works
     batchX, batchy = train_it.next()
     print(
         "Batch shape=%s, min=%.3f, max=%.3f"
         % (batchX.shape, batchX.min(), batchX.max())
     )
-    return train_it, val_it, test_it
+    return train_it, val_it
 
 
 def get_dataset():
@@ -173,7 +168,7 @@ def train_client(global_round, model_path):
         tf.config.set_visible_devices([], "GPU")  # run with cpu
 
     # load dataset
-    train_it, val_it, test_it = get_dataset_with_batch_size(local_bs)
+    train_it, val_it = get_dataset_with_batch_size(local_bs)
 
     # BUILD MODEL
     model = CNNModel(num_channels=num_channels, num_classes=num_classes)
@@ -296,12 +291,6 @@ def train_client(global_round, model_path):
         "src/train/results/client/model_loss_global_round_%s.png" % global_round
     )
     plt.close()
-
-    # evaluate model
-    loss = model.evaluate(test_it, local_bs)
-    print("====> Evaluate on test data [loss, accuracy]:")
-    print(loss)
-    print("\n Total Run Time: %s" % (timezone.now() - start_time))
 
 
 def send_params_to_clients(center, global_round=None):
