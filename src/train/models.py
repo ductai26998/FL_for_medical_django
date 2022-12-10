@@ -114,6 +114,7 @@ class CNNModel:
         res = [i.argmax() for i in pred_list]
         return res
 
-    def evaluate(self, test_it):
-        loss = self.model.evaluate_generator(test_it, steps=24)
+    def evaluate(self, test_it, batch_size):
+        steps = test_it.samples // batch_size
+        loss = self.model.evaluate_generator(test_it, steps=steps)
         return loss

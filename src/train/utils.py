@@ -14,13 +14,14 @@ import requests
 import tensorflow as tf
 from django.conf import settings
 from django.utils import timezone
+from keras.preprocessing.image import ImageDataGenerator
 from keras.utils.np_utils import to_categorical
 from sklearn.model_selection import train_test_split
 
 from ..device.models import Device
 from ..utils.aws_s3 import read_params_from_s3, upload_params_to_s3
+from ..utils.storage import read_params_from_storage, upload_params_to_storage
 from .models import CNNModel
-from keras.preprocessing.image import ImageDataGenerator
 
 # from os import listdir
 
@@ -178,7 +179,10 @@ def train_client(global_round, model_path):
     model = CNNModel(num_channels=num_channels, num_classes=num_classes)
 
     # Set the model to train and send it to device.
-    global_params = read_params_from_s3(model_path)
+    if settings.USE_AWS_STORAGE:
+        global_params = read_params_from_s3(model_path)
+    else:
+        global_params = read_params_from_storage(model_path)
 
     # Training
     train_loss_list, train_acc_list, val_acc_list, val_loss_list = [], [], [], []
@@ -197,6 +201,7 @@ def train_client(global_round, model_path):
 
     model.set_weights(global_params)
     history = model.train(train_it, val_it, local_ep, local_bs)
+    print("-----Done training")
 
     # train loss
     train_loss = history["loss"]
@@ -228,11 +233,18 @@ def train_client(global_round, model_path):
     local_params = model.get_weights()
     buffer = io.BytesIO()
     pickle.dump(local_params, buffer)
-    model_path = upload_params_to_s3(
-        buffer.getvalue(),
-        "client_1_params",
-        "local_model_round_%s.pkl" % (global_round),
-    )
+    if settings.USE_AWS_STORAGE:
+        model_path = upload_params_to_s3(
+            buffer.getvalue(),
+            "client_1_params",
+            "local_model_round_%s.pkl" % (global_round),
+        )
+    else:
+        model_path = upload_params_to_storage(
+            buffer.getvalue(),
+            "client_1_params",
+            "local_model_round_%s.pkl" % (global_round),
+        )
     client.current_model_path = model_path
     client.save(
         update_fields=[
@@ -286,8 +298,9 @@ def train_client(global_round, model_path):
     plt.close()
 
     # evaluate model
-    loss = model.evaluate(test_it)
-    print("====> Evaluate on test data: {:.2f}".format(loss))
+    loss = model.evaluate(test_it, local_bs)
+    print("====> Evaluate on test data [loss, accuracy]:")
+    print(loss)
     print("\n Total Run Time: %s" % (timezone.now() - start_time))
 
 
@@ -323,16 +336,30 @@ def send_params_to_clients(center, global_round=None):
                 current_global_round=global_round - 1,
                 current_model_path__isnull=False,
             ).values_list("current_model_path", flat=True)
-            local_params_list = [read_params_from_s3(path) for path in model_path_list]
+            if settings.USE_AWS_STORAGE:
+                local_params_list = [
+                    read_params_from_s3(path) for path in model_path_list
+                ]
+            else:
+                local_params_list = [
+                    read_params_from_storage(path) for path in model_path_list
+                ]
             global_params = average_params(local_params_list)
 
         buffer = io.BytesIO()
         pickle.dump(global_params, buffer)
-        model_path = upload_params_to_s3(
-            buffer.getvalue(),
-            "center_params",
-            "global_model_round_%s.pkl" % (global_round),
-        )
+        if settings.USE_AWS_STORAGE:
+            model_path = upload_params_to_s3(
+                buffer.getvalue(),
+                "center_params",
+                "global_model_round_%s.pkl" % (global_round),
+            )
+        else:
+            model_path = upload_params_to_storage(
+                buffer.getvalue(),
+                "center_params",
+                "global_model_round_%s.pkl" % (global_round),
+            )
         # STEP 2: Center create event and send params to clients
         print("STEP 2", timezone.now())
         requests.post(

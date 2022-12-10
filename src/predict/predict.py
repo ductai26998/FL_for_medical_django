@@ -5,12 +5,16 @@ from django.conf import settings
 from ..device.models import Device
 from ..train.models import CNNModel
 from ..utils.aws_s3 import read_params_from_s3
+from ..utils.storage import read_params_from_storage
 
 
 def predict_image_path(image_path):
     client = Device.objects.get(id=settings.CLIENT_ID)
     model_path = client.current_model_path
-    params = read_params_from_s3(model_path)
+    if settings.USE_AWS_STORAGE:
+        params = read_params_from_s3(model_path)
+    else:
+        params = read_params_from_storage(model_path)
     model = CNNModel(num_channels=client.num_channels, num_classes=client.num_classes)
     model.set_weights(params)
     res = model.predict([image_path])
@@ -25,7 +29,10 @@ def validate(img_path_regex):
     breast_img = glob.glob(img_path_regex, recursive=True)
     client = Device.objects.get(id=settings.CLIENT_ID)
     model_path = client.current_model_path
-    params = read_params_from_s3(model_path)
+    if settings.USE_AWS_STORAGE:
+        params = read_params_from_s3(model_path)
+    else:
+        params = read_params_from_storage(model_path)
     model = CNNModel(num_channels=client.num_channels, num_classes=client.num_classes)
     model.set_weights(params)
     res = model.predict(breast_img)
