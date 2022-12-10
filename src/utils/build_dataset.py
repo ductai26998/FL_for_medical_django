@@ -31,9 +31,9 @@ def main():
     total_can = len(can_img)
 
     total_non_can_train = round(total_non_can / 10 * 7)
-    total_can_train = round(total_can / 10 * 2)
+    total_can_train = round(total_can / 10 * 7)
 
-    total_non_can_val = round(total_non_can / 10 * 7)
+    total_non_can_val = round(total_non_can / 10 * 2)
     total_can_val = round(total_can / 10 * 2)
 
     print("Copying non images")
