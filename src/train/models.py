@@ -44,13 +44,15 @@ class CNNModel:
         )
         return model
 
-    def train(self, X_train, y_train, X_test, y_test, epochs, batch_size):
-        history = self.model.fit(
-            X_train,
-            y_train,
-            validation_data=(X_test, y_test),
+    def train(self, train_it, val_it, epochs, batch_size):
+        train_it_steps = round(train_it.samples / batch_size)
+        validation_steps = round(val_it.samples / batch_size)
+        history = self.model.fit_generator(
+            train_it,
+            steps_per_epoch=train_it_steps,
+            validation_data=val_it,
+            validation_steps=validation_steps,
             epochs=epochs,
-            batch_size=batch_size,
         )
         self.history = history
         return history.history
@@ -111,3 +113,7 @@ class CNNModel:
         pred_list = self.model.predict(test_images)
         res = [i.argmax() for i in pred_list]
         return res
+
+    def evaluate(self, test_it):
+        loss = self.model.evaluate_generator(test_it, steps=24)
+        return loss

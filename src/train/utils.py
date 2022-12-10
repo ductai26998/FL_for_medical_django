@@ -24,21 +24,39 @@ from keras.preprocessing.image import ImageDataGenerator
 
 # from os import listdir
 
-def get_dataset_with_batch_size():
+
+def get_dataset_with_batch_size(batch_size):
     # create generator
     datagen = ImageDataGenerator(
-            rescale=1./255,
-            shear_range=0.2,
-            zoom_range=0.2,
-            horizontal_flip=True)
+        rescale=1.0 / 255, shear_range=0.2, zoom_range=0.2, horizontal_flip=True
+    )
     # prepare an iterators for each dataset
-    train_it = datagen.flow_from_directory('src/train/data/train/', class_mode='binary', target_size=(50, 50), batch_size=64, )
-    val_it = datagen.flow_from_directory('src/train/data/validation/', class_mode='binary', target_size=(50, 50), batch_size=64, )
-    test_it = datagen.flow_from_directory('src/train/data/test/', class_mode='binary', target_size=(50, 50), batch_size=64, )
+    train_it = datagen.flow_from_directory(
+        "src/train/data/train/",
+        class_mode="binary",
+        target_size=(50, 50),
+        batch_size=batch_size,
+    )
+    val_it = datagen.flow_from_directory(
+        "src/train/data/validation/",
+        class_mode="binary",
+        target_size=(50, 50),
+        batch_size=batch_size,
+    )
+    test_it = datagen.flow_from_directory(
+        "src/train/data/test/",
+        class_mode="binary",
+        target_size=(50, 50),
+        batch_size=batch_size,
+    )
     # confirm the iterator works
     batchX, batchy = train_it.next()
-    print('Batch shape=%s, min=%.3f, max=%.3f' % (batchX.shape, batchX.min(), batchX.max()))
+    print(
+        "Batch shape=%s, min=%.3f, max=%.3f"
+        % (batchX.shape, batchX.min(), batchX.max())
+    )
     return train_it, val_it, test_it
+
 
 def get_dataset():
     """Returns train and test datasets and a user group which is a dict where
@@ -154,7 +172,7 @@ def train_client(global_round, model_path):
         tf.config.set_visible_devices([], "GPU")  # run with cpu
 
     # load dataset
-    X_train, X_test, y_train, y_test = get_dataset()
+    train_it, val_it, test_it = get_dataset_with_batch_size(local_bs)
 
     # BUILD MODEL
     model = CNNModel(num_channels=num_channels, num_classes=num_classes)
@@ -178,7 +196,7 @@ def train_client(global_round, model_path):
         val_loss_list = json.loads(val_loss_list_str)
 
     model.set_weights(global_params)
-    history = model.train(X_train, y_train, X_test, y_test, local_ep, local_bs)
+    history = model.train(train_it, val_it, local_ep, local_bs)
 
     # train loss
     train_loss = history["loss"]
@@ -267,6 +285,9 @@ def train_client(global_round, model_path):
     )
     plt.close()
 
+    # evaluate model
+    loss = model.evaluate(test_it)
+    print("====> Evaluate on test data: {:.2f}".format(loss))
     print("\n Total Run Time: %s" % (timezone.now() - start_time))
 
 
