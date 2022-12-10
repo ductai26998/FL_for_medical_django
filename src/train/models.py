@@ -29,7 +29,7 @@ class CNNModel:
                 tf.keras.layers.MaxPooling2D((3, 3), strides=2),
                 tf.keras.layers.Flatten(),
                 tf.keras.layers.Dense(128, activation="relu"),
-                tf.keras.layers.Dense(1, activation="softmax"),
+                tf.keras.layers.Dense(3, activation="softmax"),
             ]
         )
 
@@ -111,8 +111,8 @@ class CNNModel:
             test_images.append(test_img_size)
         test_images = np.array(test_images)
         pred_list = self.model.predict(test_images)
-        print(pred_list)
-        res = [i[0] for i in pred_list]
+        pred_list = self.model.predict(test_images)
+        res = [i.argmax() for i in pred_list]
         print(res)
         return res
 
