@@ -12,7 +12,10 @@
     <title>Chẩn đoán ung thu vú</title>
     <link rel="shortcut icon" href="{% static 'favicon.png' %}">
     <style>
-      .container * {
+      .container {
+        background-color: #f5f5f5;
+      }
+      .container {
         display: flex;
         flex-direction: row;
       }
@@ -77,12 +80,15 @@
       .container-result {
         display: flex;
       }
-      .table-result {
-        display: inline-flex;
+      #table-result {
+        display: flex;
+        flex-direction: column;
         width: 100%;
       }
       tr {
         width: 100%;
+        display: flex;
+        flex-direction: row;
       }
     </style>
   </head>
@@ -113,7 +119,6 @@
               <th>Hình ảnh</th>
               <th>Kết quả</th>
             </tr>
-            <div id="img-preview"></div>
           </table>
         </div>
       </div>
