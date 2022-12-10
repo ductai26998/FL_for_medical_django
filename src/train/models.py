@@ -39,7 +39,7 @@ class CNNModel:
         print("------------------------------------")
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss="binary_crossentropy",
+            loss="categorical_crossentropy",
             metrics=["accuracy"],
         )
         return model
