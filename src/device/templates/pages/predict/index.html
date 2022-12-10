@@ -15,9 +15,8 @@
       .container {
         background-color: #f5f5f5;
       }
-      .container {
+      .container * {
         display: flex;
-        flex-direction: row;
       }
       .container-header,.container-main,.container-upload {
         display: flex;
@@ -58,7 +57,6 @@
       .upload-area-layer i {
         color: #fff;
         justify-content: center;
-        /* margin-bottom: 20px; */
       }
       input[type="file"] {
         display: none;
@@ -85,10 +83,22 @@
         flex-direction: column;
         width: 100%;
       }
-      tr {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
+      tbody {
+        flex-direction: column;
+      }
+      .image-column {
+        flex-basis: 80%;
+        justify-content: center;
+        padding: 10px;
+      }
+      .result-column {
+        justify-content: center;
+        flex-basis: 20%;
+        padding: 10px;
+      }
+      .img-preview {
+        max-height: 200px;
+        min-height: 200px;
       }
     </style>
   </head>
@@ -116,8 +126,8 @@
         <div class="container-result">
           <table id="table-result">
             <tr>
-              <th>Hình ảnh</th>
-              <th>Kết quả</th>
+              <th class="image-column">Hình ảnh</th>
+              <th class="result-column">Kết quả</th>
             </tr>
           </table>
         </div>
@@ -137,8 +147,8 @@
         var tbody = document.getElementById('table-result').tBodies[0]
         tbody.innerHTML = `
         <tr>
-          <th>Hình ảnh</th>
-          <th>Kết quả</th>
+          <th class="image-column">Hình ảnh</th>
+          <th class="result-column">Kết quả</th>
         </tr>
         `
         for (let i in newImages) {
@@ -149,9 +159,11 @@
           // append a row into table
           var tr = document.createElement('tr')
           var td1 = document.createElement('td')
-          td1.innerHTML = `<img id="img-preview-${i}" src="${URL.createObjectURL(images[i])}" />`
+          td1.className = "image-column"
+          td1.innerHTML = `<img class="img-preview" id="img-preview-${i}" src="${URL.createObjectURL(images[i])}" />`
           tr.appendChild(td1)
           var td2 = document.createElement('td')
+          td2.className = "result-column"
           td2.id = `result-${i}`
           tr.appendChild(td2)
           tbody.appendChild(tr)
