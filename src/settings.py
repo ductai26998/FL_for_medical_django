@@ -21,6 +21,15 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+def get_bool_from_env(name, default_value):
+    if name in os.environ:
+        value = os.environ[name]
+        try:
+            return ast.literal_eval(value)
+        except ValueError as e:
+            raise ValueError("{} is an invalid value for {}".format(value, name)) from e
+    return default_value
+
 
 def get_number_from_env(name, default_value):
     if name in os.environ:
@@ -162,7 +171,7 @@ STATIC_URL = "/static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # aws
-USE_AWS_STORAGE = os.getenv("USE_AWS_STORAGE", "False")
+USE_AWS_STORAGE = get_bool_from_env("USE_AWS_STORAGE", "False")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
 FOLDER = os.getenv("TRAIN", "dev_train")
