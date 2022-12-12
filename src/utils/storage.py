@@ -2,14 +2,14 @@
 import os
 import pickle
 
-STORAGE_FOLDER = "src/storage/"
+from django.conf import settings
 
 
 def upload_params_to_storage(file, folder: str, file_name):
     if not file_name:
         file_name = file.name
 
-    object_name = STORAGE_FOLDER + folder + "/" + file_name
+    object_name = settings.STORAGE_FOLDER + folder + "/" + file_name
     os.makedirs(os.path.dirname(object_name), exist_ok=True)
     with open(object_name, "wb") as f:
         f.write(file)

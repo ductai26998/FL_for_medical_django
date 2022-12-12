@@ -33,13 +33,13 @@ def get_dataset_with_batch_size(batch_size):
     )
     # prepare an iterators for each dataset
     train_it = datagen.flow_from_directory(
-        "src/train/Dataset/Train/",
+        "src/train/dataset/train/",
         target_size=(50, 50),
         class_mode = 'categorical',
         batch_size=batch_size,
     )
     val_it = datagen.flow_from_directory(
-        "src/train/Dataset/Test/",
+        "src/train/dataset/test/",
         target_size=(50, 50),
         class_mode = 'categorical',
         batch_size=batch_size,
