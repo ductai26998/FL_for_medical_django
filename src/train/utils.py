@@ -29,22 +29,30 @@ from .models import CNNModel
 def get_dataset_with_batch_size(batch_size):
     # create generator
     datagen = ImageDataGenerator(
-        rescale=1.0 / 255, shear_range=0.2, zoom_range=0.2, horizontal_flip=True
+        rotation_range=30,
+        zoom_range=0.15,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        shear_range=0.15,
+        horizontal_flip=True,
+        fill_mode="nearest"
     )
     # prepare an iterators for each dataset
     train_it = datagen.flow_from_directory(
         "src/train/dataset/train/",
-        target_size=(50, 50),
+        target_size=(224, 224),
         class_mode = 'categorical',
         batch_size=batch_size,
     )
     val_it = datagen.flow_from_directory(
         "src/train/dataset/test/",
-        target_size=(50, 50),
+        target_size=(224, 224),
         class_mode = 'categorical',
         batch_size=batch_size,
     )
-
+    mean = np.array([123.68, 116.779, 103.939], dtype="float32")
+    train_it.mean = mean
+    val_it.mean = mean
     # confirm the iterator works
     batchX, batchy = train_it.next()
     print(
@@ -146,7 +154,7 @@ def average_params(weights_list):
     """
 
     w_avg = np.array(weights_list[0])
-    for weights in weights_list:
+    for weights in weights_list[1:]:
         w_avg += np.array(weights)
     return list(w_avg / len(weights_list))
 

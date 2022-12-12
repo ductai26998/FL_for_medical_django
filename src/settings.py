@@ -178,4 +178,4 @@ FOLDER = os.getenv("TRAIN", "dev_train")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "fl-for-medical")
 
 CLIENT_ID = get_number_from_env("CLIENT_ID", None)
-STORAGE_FOLDER = os.getenv("STORAGE_FOLDER", "/boot/data/DATN/ffm_xray_storage")
+STORAGE_FOLDER = os.getenv("STORAGE_FOLDER", "/boot/data/DATN/ffm_xray_storage/")

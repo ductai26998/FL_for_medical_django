@@ -1,7 +1,14 @@
 import cv2
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
+from tensorflow.keras.applications import VGG16
+from tensorflow.keras.layers import (AveragePooling2D, Dense, Dropout, Flatten,
+                                     Input)
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import SGD
+
+matplotlib.use("Agg")
 
 
 class CNNModel:
@@ -11,36 +18,44 @@ class CNNModel:
         self.model = self.create()
 
     def create(self):
-        model = tf.keras.Sequential(
-            [
-                tf.keras.layers.Conv2D(
-                    32,
-                    (3, 3),
-                    padding="same",
-                    activation="relu",
-                    input_shape=(50, 50, self.num_channels),
-                ),
-                tf.keras.layers.MaxPooling2D(strides=2),
-                tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation="relu"),
-                tf.keras.layers.MaxPooling2D((3, 3), strides=2),
-                tf.keras.layers.Conv2D(128, (3, 3), padding="same", activation="relu"),
-                tf.keras.layers.MaxPooling2D((3, 3), strides=2),
-                tf.keras.layers.Conv2D(128, (3, 3), padding="same", activation="relu"),
-                tf.keras.layers.MaxPooling2D((3, 3), strides=2),
-                tf.keras.layers.Flatten(),
-                tf.keras.layers.Dense(128, activation="relu"),
-                tf.keras.layers.Dense(3, activation="softmax"),
-            ]
+        baseModel = VGG16(
+            weights="imagenet",
+            include_top=False,
+            input_tensor=Input(shape=(224, 224, 3)),
         )
+        # Insert dropout in VGG16
+        layer_1 = baseModel.layers[-3]
+        layer_2 = baseModel.layers[-2]
+        layer_3 = baseModel.layers[-1]
+
+        # Create the dropout layers
+        dropout1 = Dropout(0.85)
+        dropout2 = Dropout(0.85)
+
+        # Reconnect the layers
+        x = dropout1(layer_1.output)
+        x = layer_2(x)
+        x = dropout2(x)
+        x = layer_3(x)
+
+        headModel = x
+        headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
+        headModel = Flatten(name="flatten")(headModel)
+        headModel = Dense(512, activation="relu")(headModel)
+        headModel = Dense(256, activation="relu")(headModel)
+        headModel = Dense(64, activation="relu")(headModel)
+        headModel = Dense(self.num_classes, activation="softmax")(headModel)
+
+        model = Model(inputs=baseModel.input, outputs=headModel)
 
         print("------------------------------------")
         print("----- Details about current model:")
         print(model.summary())
         print("------------------------------------")
+
+        opt = SGD(learning_rate=1e-4, momentum=0.9)
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss="categorical_crossentropy",
-            metrics=["accuracy"],
+            loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
         return model
 
@@ -94,7 +109,7 @@ class CNNModel:
         for img_path in test_images_paths:
             test_img = cv2.imread(img_path, cv2.IMREAD_COLOR)
             test_img_size = cv2.resize(
-                test_img, (50, 50), interpolation=cv2.INTER_LINEAR
+                test_img, (224, 224), interpolation=cv2.INTER_LINEAR
             )
             test_images.append(test_img_size)
         test_images = np.array(test_images)
@@ -107,7 +122,9 @@ class CNNModel:
         for file in files:
             np_arr = np.fromstring(file.file.read(), np.uint8)
             img_np = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            test_img_size = cv2.resize(img_np, (50, 50), interpolation=cv2.INTER_LINEAR)
+            test_img_size = cv2.resize(
+                img_np, (224, 224), interpolation=cv2.INTER_LINEAR
+            )
             test_images.append(test_img_size)
         test_images = np.array(test_images)
         pred_list = self.model.predict(test_images)
