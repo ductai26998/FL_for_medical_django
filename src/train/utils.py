@@ -44,108 +44,15 @@ def get_dataset_with_batch_size(batch_size):
         class_mode = 'categorical',
         batch_size=batch_size,
     )
-    val_it = datagen.flow_from_directory(
-        "src/train/dataset/test/",
-        target_size=(224, 224),
-        class_mode = 'categorical',
-        batch_size=batch_size,
-    )
     mean = np.array([123.68, 116.779, 103.939], dtype="float32")
     train_it.mean = mean
-    val_it.mean = mean
     # confirm the iterator works
     batchX, batchy = train_it.next()
     print(
         "Batch shape=%s, min=%.3f, max=%.3f"
         % (batchX.shape, batchX.min(), batchX.max())
     )
-    return train_it, val_it
-
-
-def get_dataset():
-    """Returns train and test datasets and a user group which is a dict where
-    the keys are the user index and the values are the corresponding data for
-    each of those users.
-    """
-
-    img_path = "src/train/Dataset/Train/**/*.jpg"
-
-    breast_img = glob.glob(img_path, recursive=True)
-
-    non_can_img = []
-    can_img = []
-
-    for img in breast_img:
-        img_class = img.split("/")
-        if img_class[-2] == "benign":
-            non_can_img.append(img)
-
-        elif img_class[-2] == "malignant":
-            can_img.append(img)
-
-    non_can_num = len(non_can_img)  # No cancer
-    can_num = len(can_img)  # Cancer
-
-    total_img_num = non_can_num + can_num
-
-    print(
-        "Number of Images of no cancer: {}".format(non_can_num)
-    )  # images of Non cancer
-    print("Number of Images of cancer : {}".format(can_num))  # images of cancer
-    print("Total Number of Images : {}".format(total_img_num))
-
-    data_insight_1 = pd.DataFrame(
-        {"state of cancer": ["0", "1"], "Numbers of Patients": [non_can_num, can_num]}
-    )
-    bar = px.bar(
-        data_frame=data_insight_1,
-        x="state of cancer",
-        y="Numbers of Patients",
-        color="state of cancer",
-    )
-    bar.update_layout(
-        title_text="Number of Patients with cancer (1) and patients with no cancer (0)",
-        title_x=0.5,
-    )
-    # bar.show()
-
-    non_img_arr = []
-    can_img_arr = []
-    print("----- Reading non_can_img")
-    for img in non_can_img:  # FIXME: remove [:100]
-        n_img = cv2.imread(img, cv2.IMREAD_COLOR)
-        n_img_size = cv2.resize(n_img, (50, 50), interpolation=cv2.INTER_LINEAR)
-        non_img_arr.append([n_img_size, 0])
-
-    print("----- Reading can_img")
-    for img in can_img:  # FIXME: remove [:100]
-        c_img = cv2.imread(img, cv2.IMREAD_COLOR)
-        c_img_size = cv2.resize(c_img, (50, 50), interpolation=cv2.INTER_LINEAR)
-        can_img_arr.append([c_img_size, 1])
-
-    X = []
-    y = []
-
-    breast_img_arr = np.concatenate((non_img_arr, can_img_arr))
-    random.shuffle(breast_img_arr)
-
-    for feature, label in breast_img_arr:
-        X.append(feature)
-        y.append(label)
-
-    X = np.array(X)
-    y = np.array(y)
-
-    print("----- X shape : {}".format(X.shape))
-
-    ####
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.25, random_state=42
-    )
-    y_train = to_categorical(y_train, 2)
-    y_test = to_categorical(y_test, 2)
-
-    return X_train, X_test, y_train, y_test
+    return train_it
 
 
 def average_params(weights_list):
@@ -176,7 +83,7 @@ def train_client(global_round, model_path):
         tf.config.set_visible_devices([], "GPU")  # run with cpu
 
     # load dataset
-    train_it, val_it = get_dataset_with_batch_size(local_bs)
+    train_it = get_dataset_with_batch_size(local_bs)
 
     # BUILD MODEL
     model = CNNModel(num_channels=num_channels, num_classes=num_classes)
@@ -203,7 +110,7 @@ def train_client(global_round, model_path):
         val_loss_list = json.loads(val_loss_list_str)
 
     model.set_weights(global_params)
-    history = model.train(train_it, val_it, local_ep, local_bs)
+    history = model.train(train_it, local_ep, local_bs)
     print("-----Done training")
 
     # train loss

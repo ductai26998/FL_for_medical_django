@@ -207,10 +207,12 @@
             console.log(response)
             predictResults = response.data.data
             for (let i in predictResults) {
-              if (predictResults[i] == 1) {
-                predictResults[i] = 'Khả năng cao'
-              } else if (predictResults[i] == 0) {
-                predictResults[i] = 'Khả năng thấp'
+              if (predictResults[i] == 0) {
+                predictResults[i] = 'U lành tính'
+              } else if (predictResults[i] == 1) {
+                predictResults[i] = 'Bình thường'
+              } else {
+                predictResults[i] = 'U ác tính'
               }
               result_area = document.getElementById(`result-${i}`)
               result_area.innerHTML = `<p>${predictResults[i]}</p>`
