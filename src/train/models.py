@@ -59,14 +59,11 @@ class CNNModel:
         )
         return model
 
-    def train(self, train_it, val_it, epochs, batch_size):
+    def train(self, train_it, epochs, batch_size):
         train_it_steps = train_it.samples // batch_size
-        validation_steps = val_it.samples // batch_size
         history = self.model.fit_generator(
             train_it,
             steps_per_epoch=train_it_steps,
-            validation_data=val_it,
-            validation_steps=validation_steps,
             epochs=epochs,
         )
         self.history = history
