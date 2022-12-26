@@ -153,9 +153,9 @@ def average_params(weights_list):
     Returns the average of the params.
     """
 
-    w_avg = np.array(weights_list[0])
+    w_avg = np.array(weights_list[0], dtype=object)
     for weights in weights_list[1:]:
-        w_avg += np.array(weights)
+        w_avg += np.array(weights, dtype=object)
     return list(w_avg / len(weights_list))
 
 
@@ -239,13 +239,13 @@ def train_client(global_round, model_path):
     if settings.USE_AWS_STORAGE:
         model_path = upload_params_to_s3(
             buffer.getvalue(),
-            "client_1_params",
+            "client_%s_params" % settings.CLIENT_ID,
             "local_model_round_%s.pkl" % (global_round),
         )
     else:
         model_path = upload_params_to_storage(
             buffer.getvalue(),
-            "client_1_params",
+            "client_%s_params" % settings.CLIENT_ID,
             "local_model_round_%s.pkl" % (global_round),
         )
     client.current_model_path = model_path
