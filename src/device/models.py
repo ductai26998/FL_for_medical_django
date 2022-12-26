@@ -35,6 +35,7 @@ class Device(models.Model):
     # total class of dataset
     num_classes = models.IntegerField(null=True, blank=True)
     batch_size = models.IntegerField(null=True, blank=True)
+    dataset_size = models.IntegerField(null=True, blank=True)
 
     objects = DeviceManager()
 

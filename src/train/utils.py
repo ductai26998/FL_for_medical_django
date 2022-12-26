@@ -148,15 +148,15 @@ def get_dataset():
     return X_train, X_test, y_train, y_test
 
 
-def average_params(weights_list):
+def average_params(weights_list, data_lens):
     """
     Returns the average of the params.
     """
 
-    w_avg = np.array(weights_list[0], dtype=object)
-    for weights in weights_list[1:]:
-        w_avg += np.array(weights, dtype=object)
-    return list(w_avg / len(weights_list))
+    w_avg = (np.array(weights_list[0], dtype=object) / data_lens[0])
+    for i in range(1, len(weights_list)):
+        w_avg += (np.array(weights_list[i], dtype=object) * (data_lens[i]) / sum(data_lens))
+    return list(w_avg)
 
 
 def train_client(global_round, model_path):
@@ -341,7 +341,12 @@ def send_params_to_clients(center, global_round=None):
                 local_params_list = [
                     read_params_from_storage(path) for path in model_path_list
                 ]
-            global_params = average_params(local_params_list)
+            data_lens = Device.objects.filter(
+                is_center=False,
+                current_global_round=global_round - 1,
+                current_model_path__isnull=False,
+            ).values_list("dataset_size", flat=True)
+            global_params = average_params(local_params_list, data_lens=data_lens)
 
         buffer = io.BytesIO()
         pickle.dump(global_params, buffer)
